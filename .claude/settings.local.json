@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(xcodegen generate:*)",
+      "Bash(uv venv:*)",
+      "Bash(uv pip install:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(while ps aux)",
+      "Bash(do sleep 30)",
+      "Bash(done)",
+      "Bash(xcodebuild:*)",
+      "Bash(source .venv/bin/activate:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python:*)",
+      "Bash(find:*)",
+      "Bash(sort:*)",
+      "Bash(git rm:*)",
+      "Bash(xargs -I {} sh -c 'ls -lh \"\"{}\"\" 2>/dev/null || echo \"\"{} \\(staged for removal\\)\"\"')"
+    ]
+  }
+}

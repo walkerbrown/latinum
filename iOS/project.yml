@@ -1,0 +1,109 @@
+name: Latinum
+options:
+  bundleIdPrefix: com.latinum
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ENABLE_BITCODE: NO
+    DEBUG_INFORMATION_FORMAT: "dwarf-with-dsym"
+
+targets:
+  Latinum:
+    type: application
+    platform: iOS
+    sources:
+      - path: Latinum
+        excludes:
+          - "**/*.md"
+    resources:
+      - path: Latinum/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.latinum.app
+        INFOPLIST_FILE: Latinum/Info.plist
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: LatinumKeyboard
+        embed: true
+        codeSign: true
+        buildPhase:
+          copyFiles:
+            destination: plugins
+    postBuildScripts:
+      - name: "Copy Core ML Model"
+        script: |
+          # Copy ML model if it exists
+          MODEL_SRC="${SRCROOT}/../model/LatinLM.mlpackage"
+          MODEL_DST="${BUILT_PRODUCTS_DIR}/${PLUGINS_FOLDER_PATH}/LatinumKeyboard.appex/"
+          if [ -d "$MODEL_SRC" ]; then
+            cp -R "$MODEL_SRC" "$MODEL_DST"
+            echo "Copied LatinLM.mlpackage to keyboard extension"
+          fi
+
+  LatinumKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: LatinumKeyboard
+        excludes:
+          - "**/*.md"
+    resources:
+      - path: LatinumKeyboard/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.latinum.app.keyboard
+        INFOPLIST_FILE: LatinumKeyboard/Info.plist
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+        SKIP_INSTALL: YES
+        # Keyboard extension specific
+        APPLICATION_EXTENSION_API_ONLY: YES
+    entitlements:
+      path: LatinumKeyboard/LatinumKeyboard.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.latinum.shared
+
+  LatinumTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: LatinumTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.latinum.tests
+        INFOPLIST_FILE: LatinumTests/Info.plist
+    dependencies:
+      - target: Latinum
+      - target: LatinumKeyboard
+
+schemes:
+  Latinum:
+    build:
+      targets:
+        Latinum: all
+        LatinumKeyboard: all
+        LatinumTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - LatinumTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
