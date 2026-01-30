@@ -93,7 +93,7 @@ class PredictionEngine {
 
         // Get model predictions
         var completions: [String]
-        if isLoaded, let model = model {
+        if isLoaded, let _ = model {
             completions = getModelCompletions(context: context, prefix: normalizedPrefix)
         } else {
             completions = getFallbackCompletions(prefix: normalizedPrefix)
@@ -112,7 +112,7 @@ class PredictionEngine {
 
     /// Predict the next word after a space
     private func predictNextWord(context: String) -> [String] {
-        if isLoaded, let model = model {
+        if isLoaded, let _ = model {
             return getModelNextWords(context: context)
         } else {
             // Return common Latin words as fallback
