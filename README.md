@@ -142,9 +142,9 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed technical document
 
 ## License
 
-This project is provided for educational purposes. The Latin corpus is in the public domain.
+Copyright 2026 Dylan Walker Brown<br>
+Licensed under the Apache License, Version 2.0.
 
-## Acknowledgments
-
-- Latin corpus sourced from public domain texts
-- Trained and optimized for Apple Neural Engine (ANE)
+The works in the Latin corpus are in the public domain.<br>
+Thanks to William L. Carey for making these works available at [The Latin Library](https://www.thelatinlibrary.com).<br>
+Thanks to [Mathis Van Eetvelde](https://github.com/mathisve) for compiling these works into `latincorpus.txt`.
