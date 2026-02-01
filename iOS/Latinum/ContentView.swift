@@ -1,34 +1,105 @@
 import SwiftUI
 
-/// Main view providing keyboard setup instructions
+/// Main view with tab navigation and shared header
 struct ContentView: View {
-    @State private var isKeyboardEnabled = false
+    @State private var selectedTab = 0
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                // Header
-                VStack(spacing: 8) {
-                    Text("LATINVM")
-                        .font(.system(size: 36, weight: .bold, design: .serif))
+        VStack(spacing: 0) {
+            // Shared header - identical across tabs
+            VStack(spacing: 8) {
+                Text("LATINVM")
+                    .font(.custom("Optima", size: 42))
+                    .fontWeight(.medium)
+
+                HStack(spacing: 6) {
                     Text("Predictive Latin Keyboard")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
+
+                    Image(systemName: "keyboard")
+                        .foregroundColor(.blue.opacity(0.7))
+                        .font(.subheadline)
                 }
-                .padding(.top, 40)
+            }
+            .padding(.top, 40)
+            .padding(.bottom, 16)
 
-                Divider()
-                    .padding(.horizontal, 40)
+            Divider()
+                .padding(.horizontal, 40)
 
-                // Setup instructions
+            // Tab content below the divider
+            TabView(selection: $selectedTab) {
+                SetupContentView()
+                    .tag(0)
+
+                PracticeContentView(isTextFieldFocused: $isTextFieldFocused)
+                    .tag(1)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+
+            // Custom tab bar
+            HStack(spacing: 0) {
+                TabButton(
+                    title: "Setup",
+                    systemImage: "gearshape",
+                    isSelected: selectedTab == 0
+                ) {
+                    isTextFieldFocused = false
+                    selectedTab = 0
+                }
+
+                TabButton(
+                    title: "Practice",
+                    systemImage: "keyboard",
+                    isSelected: selectedTab == 1
+                ) {
+                    selectedTab = 1
+                }
+            }
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+            .background(Color(.systemBackground))
+        }
+    }
+}
+
+/// Custom tab button
+struct TabButton: View {
+    let title: String
+    let systemImage: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 22))
+                Text(title)
+                    .font(.caption)
+            }
+            .foregroundColor(isSelected ? .blue : .secondary)
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+/// Setup instructions content (below divider)
+struct SetupContentView: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Setup Instructions")
                         .font(.headline)
+                        .padding(.top, 24)
 
                     SetupStepView(
                         number: 1,
                         title: "Open Settings",
-                        description: "Go to Settings > General > Keyboard > Keyboards"
+                        description: "Go to Settings → General → Keyboard → Keyboards"
                     )
 
                     SetupStepView(
@@ -39,38 +110,76 @@ struct ContentView: View {
 
                     SetupStepView(
                         number: 3,
-                        title: "Allow Full Access",
-                        description: "Tap 'Latinum' and enable 'Allow Full Access' for predictions"
-                    )
-
-                    SetupStepView(
-                        number: 4,
                         title: "Start Typing",
                         description: "Switch to Latinum using the globe key"
                     )
                 }
                 .padding(.horizontal, 24)
 
-                Spacer()
-
-                // Privacy notice
-                VStack(spacing: 8) {
-                    Image(systemName: "lock.shield")
-                        .font(.title2)
-                        .foregroundColor(.green)
-
-                    Text("Privacy Guaranteed")
-                        .font(.headline)
-
-                    Text("Latinum works entirely offline. No data is collected, transmitted, or stored. Your keystrokes never leave your device.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
-                }
-                .padding(.bottom, 40)
+                Spacer(minLength: 40)
             }
-            .navigationBarHidden(true)
+
+            Spacer()
+
+            // Privacy notice
+            VStack(spacing: 8) {
+                Image(systemName: "lock.shield")
+                    .font(.title2)
+                    .foregroundColor(.green)
+
+                Text("Privacy Guaranteed")
+                    .font(.headline)
+
+                Text("Latinum works offline. No data is collected, transmitted, or stored. Your keystrokes never leave your device.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
+            .padding(.bottom, 24)
+        }
+    }
+}
+
+/// Typing practice content (below divider)
+struct PracticeContentView: View {
+    var isTextFieldFocused: FocusState<Bool>.Binding
+    @State private var text = ""
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // Text editor
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $text)
+                    .font(.system(size: 18))
+                    .padding(4)
+                    .focused(isTextFieldFocused)
+
+                if text.isEmpty {
+                    Text("Scribe hic...")
+                        .font(.system(size: 18))
+                        .foregroundColor(.secondary.opacity(0.5))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 12)
+                        .allowsHitTesting(false)
+                }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+            )
+            .padding(.horizontal, 16)
+            .padding(.top, 24)
+
+            // Clear button - always visible, disabled when empty
+            Button(action: { text = "" }) {
+                Label("Clear", systemImage: "trash")
+                    .font(.subheadline)
+            }
+            .buttonStyle(.bordered)
+            .disabled(text.isEmpty)
+
+            Spacer()
         }
     }
 }

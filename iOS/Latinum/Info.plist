@@ -33,10 +33,7 @@
 		<false/>
 	</dict>
 	<key>UILaunchScreen</key>
-	<dict>
-		<key>UIColorName</key>
-		<string>LaunchScreenBackground</string>
-	</dict>
+	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>

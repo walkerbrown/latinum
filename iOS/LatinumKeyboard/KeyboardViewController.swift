@@ -33,21 +33,24 @@ class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        updateAutoCapitalization()
         updatePredictions()
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        keyboardView.frame = view.bounds
     }
 
     // MARK: - Setup
 
     private func setupKeyboard() {
-        keyboardView = KeyboardView(frame: view.bounds)
+        keyboardView = KeyboardView(frame: .zero)
         keyboardView.delegate = self
-        keyboardView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        keyboardView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(keyboardView)
+
+        NSLayoutConstraint.activate([
+            keyboardView.topAnchor.constraint(equalTo: view.topAnchor),
+            keyboardView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
     }
 
     private func setupPredictionEngine() {
@@ -90,7 +93,40 @@ class KeyboardViewController: UIInputViewController {
     private func updatePredictions() {
         let context = textDocumentProxy.documentContextBeforeInput ?? ""
         let predictions = predictionEngine.predict(context: context, currentWord: currentWord)
-        keyboardView.updatePredictions(predictions)
+        // Apply capitalization based on current shift state
+        let capitalizedPredictions = predictions.map { applyCapitalization($0) }
+        keyboardView.updatePredictions(capitalizedPredictions)
+    }
+
+    /// Apply capitalization to a word based on current shift state
+    private func applyCapitalization(_ text: String) -> String {
+        switch shiftState {
+        case .lowercase:
+            return text
+        case .uppercase:
+            return text.prefix(1).uppercased() + text.dropFirst()
+        case .capsLock:
+            return text.uppercased()
+        }
+    }
+
+    /// Check if we should auto-capitalize (empty field or after ". ")
+    private func updateAutoCapitalization() {
+        let context = textDocumentProxy.documentContextBeforeInput ?? ""
+
+        // Capitalize if empty or ends with ". "
+        if context.isEmpty || context.hasSuffix(". ") {
+            if shiftState == .lowercase {
+                shiftState = .uppercase
+                keyboardView.updateShiftState(shiftState)
+            }
+        }
+    }
+
+    /// Check if we should capitalize after current action
+    private func shouldAutoCapitalize() -> Bool {
+        let context = textDocumentProxy.documentContextBeforeInput ?? ""
+        return context.isEmpty || context.hasSuffix(". ")
     }
 
     // MARK: - Key Handling
@@ -136,6 +172,39 @@ class KeyboardViewController: UIInputViewController {
         textDocumentProxy.deleteBackward()
         updateCurrentWord()
         updatePredictions()
+        updateAutoCapitalization()
+    }
+
+    /// Delete the previous word (for hold-backspace acceleration)
+    func deleteWord() {
+        guard let context = textDocumentProxy.documentContextBeforeInput, !context.isEmpty else {
+            return
+        }
+
+        // Find the start of the current/previous word
+        var charsToDelete = 0
+        var foundWordChar = false
+
+        for char in context.reversed() {
+            if char.isWhitespace {
+                if foundWordChar {
+                    break
+                }
+                charsToDelete += 1
+            } else {
+                foundWordChar = true
+                charsToDelete += 1
+            }
+        }
+
+        // Delete the word
+        for _ in 0..<charsToDelete {
+            textDocumentProxy.deleteBackward()
+        }
+
+        updateCurrentWord()
+        updatePredictions()
+        updateAutoCapitalization()
     }
 
     /// Handle space
@@ -147,6 +216,22 @@ class KeyboardViewController: UIInputViewController {
             shiftState = .lowercase
             keyboardView.updateShiftState(shiftState)
         }
+
+        updatePredictions()
+    }
+
+    /// Handle double-tap space - replace space with ". " and uppercase
+    func handleDoubleTapSpace() {
+        // Delete the space we just inserted from the first tap
+        textDocumentProxy.deleteBackward()
+
+        // Insert period and space
+        textDocumentProxy.insertText(". ")
+        currentWord = ""
+
+        // Enable uppercase for next sentence
+        shiftState = .uppercase
+        keyboardView.updateShiftState(shiftState)
 
         updatePredictions()
     }
@@ -175,12 +260,14 @@ class KeyboardViewController: UIInputViewController {
             shiftState = .lowercase
         }
         keyboardView.updateShiftState(shiftState)
+        updatePredictions()
     }
 
     /// Enable caps lock (double-tap shift)
     func enableCapsLock() {
         shiftState = .capsLock
         keyboardView.updateShiftState(shiftState)
+        updatePredictions()
     }
 
     /// Apply a prediction suggestion
@@ -190,14 +277,13 @@ class KeyboardViewController: UIInputViewController {
             textDocumentProxy.deleteBackward()
         }
 
-        // Insert the prediction
+        // Prediction is already capitalized as displayed, insert directly
         textDocumentProxy.insertText(prediction)
-
-        // Add space after word
         textDocumentProxy.insertText(" ")
 
         currentWord = ""
 
+        // Return to lowercase after uppercase (but not caps lock)
         if shiftState == .uppercase {
             shiftState = .lowercase
             keyboardView.updateShiftState(shiftState)
@@ -206,8 +292,8 @@ class KeyboardViewController: UIInputViewController {
         updatePredictions()
     }
 
-    /// Switch to next keyboard
-    func switchKeyboard() {
+    /// Advance to next input mode (globe key)
+    func advanceInputMode() {
         advanceToNextInputMode()
     }
 }
@@ -227,8 +313,16 @@ extension KeyboardViewController: KeyboardViewDelegate {
         deleteBackward()
     }
 
+    func keyboardViewDidDeleteWord(_ view: KeyboardView) {
+        deleteWord()
+    }
+
     func keyboardViewDidTapSpace(_ view: KeyboardView) {
         insertSpace()
+    }
+
+    func keyboardViewDidDoubleTapSpace(_ view: KeyboardView) {
+        handleDoubleTapSpace()
     }
 
     func keyboardViewDidTapReturn(_ view: KeyboardView) {
@@ -248,7 +342,7 @@ extension KeyboardViewController: KeyboardViewDelegate {
     }
 
     func keyboardViewDidTapGlobe(_ view: KeyboardView) {
-        switchKeyboard()
+        advanceInputMode()
     }
 }
 

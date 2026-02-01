@@ -8,14 +8,30 @@ class KeyButton: UIButton {
     /// The key value this button represents
     let keyValue: String
 
-    /// Whether this is a special key (shift, backspace, etc.)
-    let isSpecial: Bool
+    // MARK: - Computed Colors (adaptive for dark/light mode)
+
+    private var normalBackgroundColor: UIColor {
+        // All keys use the same color
+        return UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(white: 0.28, alpha: 1.0)
+                : UIColor.white
+        }
+    }
+
+    private var highlightedBackgroundColor: UIColor {
+        // All keys use the same highlight color
+        return UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(white: 0.20, alpha: 1.0)
+                : UIColor.systemGray5
+        }
+    }
 
     // MARK: - Initialization
 
-    init(key: String, isSpecial: Bool = false) {
+    init(key: String) {
         self.keyValue = key
-        self.isSpecial = isSpecial
         super.init(frame: .zero)
         setupButton()
     }
@@ -27,28 +43,29 @@ class KeyButton: UIButton {
     // MARK: - Setup
 
     private func setupButton() {
-        // Appearance
-        if isSpecial {
-            backgroundColor = UIColor.systemGray3
-            setTitleColor(.label, for: .normal)
-            tintColor = .label
-        } else {
-            backgroundColor = .white
-            setTitleColor(.label, for: .normal)
+        backgroundColor = normalBackgroundColor
+        setTitleColor(.label, for: .normal)
+        tintColor = .label
+
+        // Auto-set title only for single character keys (letters, numbers, symbols)
+        // Multi-character keys (shift, backspace, etc.) get custom images/titles
+        if keyValue.count == 1 {
             setTitle(keyValue, for: .normal)
         }
 
         titleLabel?.font = .systemFont(ofSize: 22, weight: .regular)
-
-        // Shape
-        layer.cornerRadius = 5
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOffset = CGSize(width: 0, height: 1)
-        layer.shadowOpacity = 0.2
-        layer.shadowRadius = 0
-
-        // Constraints
+        layer.cornerRadius = 7
         translatesAutoresizingMaskIntoConstraints = false
+    }
+
+    // MARK: - Trait Changes
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            backgroundColor = isHighlighted ? highlightedBackgroundColor : normalBackgroundColor
+        }
     }
 
     // MARK: - Touch Feedback
@@ -56,12 +73,25 @@ class KeyButton: UIButton {
     override var isHighlighted: Bool {
         didSet {
             if isHighlighted {
-                backgroundColor = isSpecial ? UIColor.systemGray4 : UIColor.systemGray5
+                backgroundColor = highlightedBackgroundColor
                 transform = CGAffineTransform(scaleX: 0.98, y: 0.98)
             } else {
-                backgroundColor = isSpecial ? UIColor.systemGray3 : .white
+                backgroundColor = normalBackgroundColor
                 transform = .identity
             }
+        }
+    }
+
+    /// Force update background color (e.g., for shift key state changes)
+    func setHighlightedAppearance(_ highlighted: Bool) {
+        if highlighted {
+            backgroundColor = UIColor { traits in
+                traits.userInterfaceStyle == .dark
+                    ? UIColor(white: 0.28, alpha: 1.0)
+                    : UIColor.white
+            }
+        } else {
+            backgroundColor = normalBackgroundColor
         }
     }
 }
