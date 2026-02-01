@@ -1,5 +1,4 @@
 import XCTest
-@testable import LatinumKeyboard
 
 /// Tests for Latin text normalization
 final class NormalizationTests: XCTestCase {
@@ -195,5 +194,113 @@ final class NormalizationTests: XCTestCase {
     func testGetLongPressOptions_consonant() {
         let options = LatinNormalization.getLongPressOptions("b")
         XCTAssertTrue(options.isEmpty, "Consonants should have no long press options")
+    }
+
+    // MARK: - Edge Cases
+
+    func testStripMacrons_emptyString() {
+        XCTAssertEqual(
+            LatinNormalization.stripMacrons(""),
+            "",
+            "Empty string should return empty string"
+        )
+    }
+
+    func testExpandLigatures_emptyString() {
+        XCTAssertEqual(
+            LatinNormalization.expandLigatures(""),
+            "",
+            "Empty string should return empty string"
+        )
+    }
+
+    func testNormalizeForModel_emptyString() {
+        XCTAssertEqual(
+            LatinNormalization.normalizeForModel(""),
+            "",
+            "Empty string should return empty string"
+        )
+    }
+
+    func testNormalizeForModel_onlyPunctuation() {
+        XCTAssertEqual(
+            LatinNormalization.normalizeForModel("... !!!"),
+            "... !!!",
+            "Punctuation should pass through unchanged"
+        )
+    }
+
+    func testApplyCompletionPreservingDiacritics_casePreserved() {
+        let result = LatinNormalization.applyCompletionPreservingDiacritics(
+            userText: "Rōm",
+            completion: "Roma"
+        )
+        XCTAssertEqual(
+            result,
+            "Rōma",
+            "Should preserve user case and macrons"
+        )
+    }
+
+    func testGetLongPressOptions_e() {
+        let options = LatinNormalization.getLongPressOptions("e")
+        XCTAssertEqual(options.count, 1, "e should have 1 option (ē)")
+        XCTAssertTrue(options.contains("\u{0113}"), "Should include ē")
+    }
+
+    func testGetLongPressOptions_uppercase_E() {
+        let options = LatinNormalization.getLongPressOptions("E")
+        XCTAssertEqual(options.count, 1, "E should have 1 option (Ē)")
+        XCTAssertTrue(options.contains("\u{0112}"), "Should include Ē")
+    }
+
+    func testGetLongPressOptions_i() {
+        let options = LatinNormalization.getLongPressOptions("i")
+        XCTAssertEqual(options.count, 1, "i should have 1 option (ī)")
+        XCTAssertTrue(options.contains("\u{012B}"), "Should include ī")
+    }
+
+    func testGetLongPressOptions_u() {
+        let options = LatinNormalization.getLongPressOptions("u")
+        XCTAssertEqual(options.count, 1, "u should have 1 option (ū)")
+        XCTAssertTrue(options.contains("\u{016B}"), "Should include ū")
+    }
+
+    func testGetLongPressOptions_y() {
+        let options = LatinNormalization.getLongPressOptions("y")
+        XCTAssertEqual(options.count, 1, "y should have 1 option (ȳ)")
+        XCTAssertTrue(options.contains("\u{0233}"), "Should include ȳ")
+    }
+
+    // MARK: - Consistency Tests
+
+    func testAllMacronVowelsRoundtrip() {
+        // Test that all macron vowels can be stripped and restored
+        let macronVowels = "āēīōūȳ"
+        let stripped = LatinNormalization.stripMacrons(macronVowels)
+        XCTAssertEqual(stripped, "aeiouy", "All lowercase macrons should strip")
+
+        let upperMacronVowels = "ĀĒĪŌŪȲ"
+        let upperStripped = LatinNormalization.stripMacrons(upperMacronVowels)
+        XCTAssertEqual(upperStripped, "AEIOUY", "All uppercase macrons should strip")
+    }
+
+    func testAllLigaturesRoundtrip() {
+        let ligatures = "æœÆŒ"
+        let expanded = LatinNormalization.expandLigatures(ligatures)
+        XCTAssertEqual(expanded, "aeoeAeOe", "All ligatures should expand correctly")
+    }
+
+    func testApplyCompletionPreservingDiacritics_lengthMismatch() {
+        // User text longer than completion shouldn't crash
+        let result = LatinNormalization.applyCompletionPreservingDiacritics(
+            userText: "amare",
+            completion: "am"
+        )
+        XCTAssertEqual(
+            result,
+            "am",
+            "Should return completion when user text doesn't match"
+        )
     }
 }

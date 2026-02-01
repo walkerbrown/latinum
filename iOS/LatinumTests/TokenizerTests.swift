@@ -1,5 +1,4 @@
 import XCTest
-@testable import LatinumKeyboard
 
 /// Tests for the character tokenizer
 final class TokenizerTests: XCTestCase {
@@ -105,5 +104,107 @@ final class TokenizerTests: XCTestCase {
         XCTAssertLessThan(CharacterTokenizer.bosId, 5)
         XCTAssertLessThan(CharacterTokenizer.eosId, 5)
         XCTAssertEqual(CharacterTokenizer.spaceId, 4)
+    }
+
+    // MARK: - Edge Cases
+
+    func testEncode_emptyString() {
+        let ids = CharacterTokenizer.encode("")
+        XCTAssertEqual(ids.count, 0, "Empty string should encode to empty array")
+    }
+
+    func testEncode_emptyStringWithBos() {
+        let ids = CharacterTokenizer.encode("", addBos: true)
+        XCTAssertEqual(ids.count, 1, "Empty string with BOS should have 1 token")
+        XCTAssertEqual(ids[0], CharacterTokenizer.bosId, "Should be BOS token")
+    }
+
+    func testEncode_emptyStringWithBosAndEos() {
+        let ids = CharacterTokenizer.encode("", addBos: true, addEos: true)
+        XCTAssertEqual(ids.count, 2, "Empty string with BOS+EOS should have 2 tokens")
+        XCTAssertEqual(ids[0], CharacterTokenizer.bosId, "First should be BOS")
+        XCTAssertEqual(ids[1], CharacterTokenizer.eosId, "Second should be EOS")
+    }
+
+    func testDecode_emptyArray() {
+        let text = CharacterTokenizer.decode([])
+        XCTAssertEqual(text, "", "Empty array should decode to empty string")
+    }
+
+    func testEncode_allNumbers() {
+        let ids = CharacterTokenizer.encode("1234567890")
+        XCTAssertEqual(ids.count, 10, "Should encode all 10 digits")
+        // Verify none are UNK
+        for id in ids {
+            XCTAssertNotEqual(id, CharacterTokenizer.unkId, "Digits should not be UNK")
+        }
+    }
+
+    func testEncode_punctuation() {
+        let punctuation = ".,;:!?'\"-"
+        let ids = CharacterTokenizer.encode(punctuation)
+        XCTAssertEqual(ids.count, punctuation.count, "All punctuation should encode")
+        for id in ids {
+            XCTAssertNotEqual(id, CharacterTokenizer.unkId, "Standard punctuation should not be UNK")
+        }
+    }
+
+    func testEncode_mixedCaseAndPunctuation() {
+        let text = "Salve, Roma!"
+        let ids = CharacterTokenizer.encode(text)
+        let decoded = CharacterTokenizer.decode(ids)
+        XCTAssertEqual(decoded, text, "Mixed case with punctuation should roundtrip")
+    }
+
+    func testEncode_multipleUnknownChars() {
+        let ids = CharacterTokenizer.encode("@#$%^&*")
+        // @ is unknown, # is unknown, $ is in vocab...
+        // Let's just verify encoding doesn't crash with unknown chars
+        XCTAssertEqual(ids.count, 7, "Should encode all characters including unknowns")
+    }
+
+    func testDecode_unknownIdReturnsEmpty() {
+        let ids = [999]  // Invalid ID
+        let text = CharacterTokenizer.decode(ids)
+        XCTAssertEqual(text, "", "Invalid ID should produce empty string")
+    }
+
+    func testDecode_withUnkToken() {
+        let ids = [CharacterTokenizer.unkId]
+        let textSkip = CharacterTokenizer.decode(ids, skipSpecial: true)
+        let textNoSkip = CharacterTokenizer.decode(ids, skipSpecial: false)
+        XCTAssertEqual(textSkip, "", "UNK should be skipped when skipSpecial=true")
+        XCTAssertEqual(textNoSkip, "", "UNK should still be skipped when skipSpecial=false")
+    }
+
+    // MARK: - Vocabulary Coverage
+
+    func testVocabContainsAllLatinLetters() {
+        let lowercase = "abcdefghijklmnopqrstuvwxyz"
+        let uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+        for char in lowercase {
+            XCTAssertNotNil(
+                CharacterTokenizer.charToId[char],
+                "Vocab should contain lowercase \(char)"
+            )
+        }
+
+        for char in uppercase {
+            XCTAssertNotNil(
+                CharacterTokenizer.charToId[char],
+                "Vocab should contain uppercase \(char)"
+            )
+        }
+    }
+
+    func testIdToCharCoverage() {
+        // All IDs from 4 to vocabSize-1 should map to characters
+        for id in 4..<CharacterTokenizer.vocabSize {
+            XCTAssertNotNil(
+                CharacterTokenizer.idToChar[id],
+                "ID \(id) should map to a character"
+            )
+        }
     }
 }

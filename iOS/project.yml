@@ -80,13 +80,15 @@ targets:
     platform: iOS
     sources:
       - path: LatinumTests
+      # Include testable source files directly since app-extensions can't be linked
+      - path: LatinumKeyboard/LatinNormalization.swift
+      - path: LatinumKeyboard/CharacterTokenizer.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.latinum.tests
         INFOPLIST_FILE: LatinumTests/Info.plist
     dependencies:
       - target: Latinum
-      - target: LatinumKeyboard
 
 schemes:
   Latinum:

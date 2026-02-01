@@ -7,9 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		074F54D650854E83838750E3 /* LatinNormalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FFC46520EB5B322B65FBDA /* LatinNormalization.swift */; };
 		0CA85FE7985C6AC1EDF914E9 /* LatinumKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6913023984C0F15D5D438C87 /* LatinumKeyboard.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		16A6FBA5173EA4FA11A90DB7 /* CharacterTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD8CB7EE192AFA7A0815AEF /* CharacterTokenizer.swift */; };
 		295D4D8D73D85BB1BDFA1AE3 /* LatinNormalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FFC46520EB5B322B65FBDA /* LatinNormalization.swift */; };
+		3A3B2B3EF531E8E1B963B389 /* LatinLM.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 7ECAFA5C022D08C641F8E19D /* LatinLM.mlpackage */; };
 		3D50D8BA48A5D5ED9C7DD8D3 /* KeyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F4F9E1E952BAE48CC65646 /* KeyButton.swift */; };
 		48C5996AA55AAF7C0F4807FA /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E10B343B9941F46B1EAF886 /* KeyboardViewController.swift */; };
 		7016BCBB3D85CCDF660CF051 /* LongPressPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F658BB79741329532CC048D /* LongPressPopupView.swift */; };
@@ -20,17 +22,11 @@
 		A2FF5034CA76868C47DD37B2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00C9BF0DEF44E0DACCD03F02 /* Assets.xcassets */; };
 		A39005F953B522949612E911 /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273022C476F5D427715A7893 /* KeyboardView.swift */; };
 		AC2A9BEC705D5476A8D11C2E /* NormalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C7703312BE15A7E3AD5289 /* NormalizationTests.swift */; };
+		AF1DFBB0197F4902A1454C08 /* CharacterTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDD8CB7EE192AFA7A0815AEF /* CharacterTokenizer.swift */; };
 		D4F5692D9EDDA6026F41C2DC /* PredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7295172B8319F8DEAAF5C52 /* PredictionEngine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		88A056CC74001248581947FD /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 1DD27424D0E2618F3223A921 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = B7DE67F29A7BAB633FD7C214;
-			remoteInfo = LatinumKeyboard;
-		};
 		A4FE6914F3D9846B98852540 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 1DD27424D0E2618F3223A921 /* Project object */;
@@ -72,6 +68,7 @@
 		409CDFB6E3D9162A451D6343 /* PredictionBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionBarView.swift; sourceTree = "<group>"; };
 		6913023984C0F15D5D438C87 /* LatinumKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LatinumKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6E10B343B9941F46B1EAF886 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
+		7ECAFA5C022D08C641F8E19D /* LatinLM.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = LatinLM.mlpackage; sourceTree = "<group>"; };
 		9440DB47ED5D3D8B1D21C44B /* LatinumTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LatinumTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F658BB79741329532CC048D /* LongPressPopupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongPressPopupView.swift; sourceTree = "<group>"; };
 		9FB77AA9FC0D5402DE8C92DB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -96,6 +93,7 @@
 		3668FB6D0AADDDE260D9F928 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				7ECAFA5C022D08C641F8E19D /* LatinLM.mlpackage */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -172,7 +170,6 @@
 			);
 			dependencies = (
 				FEE413F65CD3EBF6A5CE8333 /* PBXTargetDependency */,
-				74EF3E376ECB4EB8019EF940 /* PBXTargetDependency */,
 			);
 			name = LatinumTests;
 			packageProductDependencies = (
@@ -281,7 +278,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"${BUILT_PRODUCTS_DIR}/${PLUGINS_FOLDER_PATH}/LatinumKeyboard.appex/LatinLM.mlpackage",
+				"\"${BUILT_PRODUCTS_DIR}/${PLUGINS_FOLDER_PATH}/LatinumKeyboard.appex/LatinLM.mlpackage\"",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -298,6 +295,7 @@
 				3D50D8BA48A5D5ED9C7DD8D3 /* KeyButton.swift in Sources */,
 				A39005F953B522949612E911 /* KeyboardView.swift in Sources */,
 				48C5996AA55AAF7C0F4807FA /* KeyboardViewController.swift in Sources */,
+				3A3B2B3EF531E8E1B963B389 /* LatinLM.mlpackage in Sources */,
 				295D4D8D73D85BB1BDFA1AE3 /* LatinNormalization.swift in Sources */,
 				7016BCBB3D85CCDF660CF051 /* LongPressPopupView.swift in Sources */,
 				8AAE130047B9A01E81823796 /* PredictionBarView.swift in Sources */,
@@ -318,6 +316,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AF1DFBB0197F4902A1454C08 /* CharacterTokenizer.swift in Sources */,
+				074F54D650854E83838750E3 /* LatinNormalization.swift in Sources */,
 				AC2A9BEC705D5476A8D11C2E /* NormalizationTests.swift in Sources */,
 				A287A29984DF6BCDD0DF987D /* TokenizerTests.swift in Sources */,
 			);
@@ -330,11 +330,6 @@
 			isa = PBXTargetDependency;
 			target = B7DE67F29A7BAB633FD7C214 /* LatinumKeyboard */;
 			targetProxy = F9DAB8E373931BFBC699D768 /* PBXContainerItemProxy */;
-		};
-		74EF3E376ECB4EB8019EF940 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = B7DE67F29A7BAB633FD7C214 /* LatinumKeyboard */;
-			targetProxy = 88A056CC74001248581947FD /* PBXContainerItemProxy */;
 		};
 		FEE413F65CD3EBF6A5CE8333 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -350,14 +345,13 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = LatinumKeyboard/LatinumKeyboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = N97T7679NZ;
 				INFOPLIST_FILE = LatinumKeyboard/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.walkerbrown.latinum-claude.keyboard";
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.keyboard;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -370,13 +364,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = N97T7679NZ;
 				INFOPLIST_FILE = Latinum/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.walkerbrown.latinum-claude";
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -418,6 +411,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = N97T7679NZ;
 				ENABLE_BITCODE = NO;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -448,14 +442,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = N97T7679NZ;
 				INFOPLIST_FILE = LatinumTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum;
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Latinum.app/Latinum";
@@ -466,14 +459,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				DEVELOPMENT_TEAM = N97T7679NZ;
 				INFOPLIST_FILE = LatinumTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum;
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Latinum.app/Latinum";
@@ -516,6 +508,7 @@
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = N97T7679NZ;
 				ENABLE_BITCODE = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -555,13 +548,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = N97T7679NZ;
 				INFOPLIST_FILE = Latinum/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.walkerbrown.latinum-claude";
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -573,14 +565,13 @@
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = LatinumKeyboard/LatinumKeyboard.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = N97T7679NZ;
 				INFOPLIST_FILE = LatinumKeyboard/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.walkerbrown.latinum-claude.keyboard";
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.keyboard;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
