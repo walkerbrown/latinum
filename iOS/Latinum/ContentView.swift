@@ -6,40 +6,52 @@ struct ContentView: View {
     @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Shared header - identical across tabs
-            VStack(spacing: 8) {
-                Text("LATINVM")
-                    .font(.custom("Optima", size: 42))
-                    .fontWeight(.medium)
+        ZStack(alignment: .bottom) {
+            // Main content
+            VStack(spacing: 0) {
+                // Shared header
+                VStack(spacing: 8) {
+                    Text("LATINVM")
+                        .font(.custom("Optima", size: 42))
+                        .fontWeight(.medium)
 
-                HStack(spacing: 6) {
-                    Text("Predictive Latin Keyboard")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 6) {
+                        Text("Predictive Latin Keyboard")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
 
-                    Image(systemName: "keyboard")
-                        .foregroundColor(.blue.opacity(0.7))
-                        .font(.subheadline)
+                        Image(systemName: "keyboard")
+                            .foregroundColor(.blue.opacity(0.7))
+                            .font(.subheadline)
+                    }
                 }
+                .padding(.top, 40)
+                .padding(.bottom, 16)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture { isTextFieldFocused = false }
+
+                Divider()
+                    .padding(.horizontal, 40)
+
+                // Tab content below the divider
+                TabView(selection: $selectedTab) {
+                    SetupContentView()
+                        .tag(0)
+
+                    PracticeContentView(isTextFieldFocused: $isTextFieldFocused)
+                        .tag(1)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+
+                // Spacer for tab bar height
+                Spacer().frame(height: 56)
             }
-            .padding(.top, 40)
-            .padding(.bottom, 16)
-
-            Divider()
-                .padding(.horizontal, 40)
-
-            // Tab content below the divider
-            TabView(selection: $selectedTab) {
-                SetupContentView()
-                    .tag(0)
-
-                PracticeContentView(isTextFieldFocused: $isTextFieldFocused)
-                    .tag(1)
+            .onTapGesture {
+                isTextFieldFocused = false
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
 
-            // Custom tab bar
+            // Tab bar at bottom
             HStack(spacing: 0) {
                 TabButton(
                     title: "Setup",
@@ -62,6 +74,7 @@ struct ContentView: View {
             .padding(.bottom, 4)
             .background(Color(.systemBackground))
         }
+        .ignoresSafeArea(.keyboard)
     }
 }
 

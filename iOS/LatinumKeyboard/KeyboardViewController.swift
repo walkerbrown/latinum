@@ -23,6 +23,9 @@ class KeyboardViewController: UIInputViewController {
     /// The text currently being typed (for prediction context)
     private var currentWord: String = ""
 
+    /// Height constraint for the keyboard
+    private var heightConstraint: NSLayoutConstraint?
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -37,20 +40,42 @@ class KeyboardViewController: UIInputViewController {
         updatePredictions()
     }
 
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        updateHeightConstraint()
+    }
+
     // MARK: - Setup
 
     private func setupKeyboard() {
-        keyboardView = KeyboardView(frame: .zero)
+        keyboardView = KeyboardView()
         keyboardView.delegate = self
         keyboardView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(keyboardView)
 
+        // Pin keyboard view to all edges
         NSLayoutConstraint.activate([
             keyboardView.topAnchor.constraint(equalTo: view.topAnchor),
+            keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             keyboardView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+    }
+
+    private func updateHeightConstraint() {
+        let isLandscape = UIScreen.main.bounds.width > UIScreen.main.bounds.height
+        // Calculate total height: prediction bar (33) + spacing (4) + 4 rows + bottom padding (4)
+        let keyHeight: CGFloat = isLandscape ? 28 : 46
+        let rowSpacing: CGFloat = isLandscape ? 8 : 10
+        let totalHeight = 33 + 4 + (keyHeight * 4) + (rowSpacing * 3) + 4
+
+        if heightConstraint == nil {
+            heightConstraint = view.heightAnchor.constraint(equalToConstant: totalHeight)
+            heightConstraint?.priority = .defaultHigh
+            heightConstraint?.isActive = true
+        } else {
+            heightConstraint?.constant = totalHeight
+        }
     }
 
     private func setupPredictionEngine() {

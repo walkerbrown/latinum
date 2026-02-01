@@ -120,51 +120,71 @@ class KeyboardView: UIView {
         setupView()
     }
 
+    // MARK: - Layout Constants
+
+    private let predictionBarHeight: CGFloat = 33
+    private let bottomPadding: CGFloat = 4
+    private let predictionBarSpacing: CGFloat = 4
+
     // MARK: - Setup
 
     private func setupView() {
         backgroundColor = .clear
+        setupKeyboardStack()
         setupPredictionBar()
-        setupKeyboardLayout()
+        rebuildKeyboard()
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
+
         // Rebuild keyboard only when orientation actually changes
         if lastIsLandscape != isLandscape {
             lastIsLandscape = isLandscape
             rebuildKeyboard()
         }
+
+        // Position prediction bar using frame-based layout (avoids system constraint conflicts)
+        // Only position if keyboard stack has valid frame
+        if keyboardStack.frame.minY > 0 {
+            let predictionY = keyboardStack.frame.minY - predictionBarSpacing - predictionBarHeight
+            predictionBar.frame = CGRect(
+                x: 0,
+                y: max(0, predictionY),
+                width: bounds.width,
+                height: predictionBarHeight
+            )
+        } else {
+            // Fallback: position at top of view
+            predictionBar.frame = CGRect(
+                x: 0,
+                y: 0,
+                width: bounds.width,
+                height: predictionBarHeight
+            )
+        }
     }
 
-    private func setupPredictionBar() {
-        predictionBar.translatesAutoresizingMaskIntoConstraints = false
-        predictionBar.delegate = self
-        addSubview(predictionBar)
-
-        NSLayoutConstraint.activate([
-            predictionBar.topAnchor.constraint(equalTo: topAnchor),
-            predictionBar.leadingAnchor.constraint(equalTo: leadingAnchor),
-            predictionBar.trailingAnchor.constraint(equalTo: trailingAnchor),
-            predictionBar.heightAnchor.constraint(equalToConstant: 33),
-        ])
-    }
-
-    private func setupKeyboardLayout() {
+    private func setupKeyboardStack() {
         keyboardStack.axis = .vertical
         keyboardStack.distribution = .fill
         keyboardStack.spacing = rowSpacing
         keyboardStack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(keyboardStack)
 
+        // Anchor to bottom and sides only
         NSLayoutConstraint.activate([
-            keyboardStack.topAnchor.constraint(equalTo: predictionBar.bottomAnchor, constant: 4),
+            keyboardStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomPadding),
             keyboardStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: keySpacing + 1),
             keyboardStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -(keySpacing + 1)),
-            keyboardStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
         ])
+    }
 
-        rebuildKeyboard()
+    private func setupPredictionBar() {
+        predictionBar.delegate = self
+        // Use frame-based layout for prediction bar to avoid system constraint conflicts
+        predictionBar.translatesAutoresizingMaskIntoConstraints = true
+        addSubview(predictionBar)
     }
 
     private func rebuildKeyboard() {
