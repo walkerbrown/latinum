@@ -90,10 +90,23 @@ class KeyboardView: UIView {
     private let keyboardStack = UIStackView()
 
     // Layout constants
-    private let keyHeight: CGFloat = 46
     private let keySpacing: CGFloat = 6
     private let wideKeyWidth: CGFloat = 50
     private let row3ExtraSpacing: CGFloat = 14  // Extra space between shift-z and m-backspace
+
+    // Track orientation for rebuilding
+    private var isLandscape: Bool {
+        UIScreen.main.bounds.width > UIScreen.main.bounds.height
+    }
+    private var lastIsLandscape: Bool?
+
+    private var keyHeight: CGFloat {
+        isLandscape ? 28 : 46
+    }
+
+    private var rowSpacing: CGFloat {
+        isLandscape ? 8 : 10
+    }
 
     // MARK: - Initialization
 
@@ -115,6 +128,15 @@ class KeyboardView: UIView {
         setupKeyboardLayout()
     }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // Rebuild keyboard only when orientation actually changes
+        if lastIsLandscape != isLandscape {
+            lastIsLandscape = isLandscape
+            rebuildKeyboard()
+        }
+    }
+
     private func setupPredictionBar() {
         predictionBar.translatesAutoresizingMaskIntoConstraints = false
         predictionBar.delegate = self
@@ -131,7 +153,7 @@ class KeyboardView: UIView {
     private func setupKeyboardLayout() {
         keyboardStack.axis = .vertical
         keyboardStack.distribution = .fill
-        keyboardStack.spacing = 10
+        keyboardStack.spacing = rowSpacing
         keyboardStack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(keyboardStack)
 
@@ -146,6 +168,9 @@ class KeyboardView: UIView {
     }
 
     private func rebuildKeyboard() {
+        // Update spacing for current orientation
+        keyboardStack.spacing = rowSpacing
+
         // Clear existing views
         for view in keyboardStack.arrangedSubviews {
             keyboardStack.removeArrangedSubview(view)
