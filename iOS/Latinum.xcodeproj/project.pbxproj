@@ -16,7 +16,6 @@
 		48C5996AA55AAF7C0F4807FA /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E10B343B9941F46B1EAF886 /* KeyboardViewController.swift */; };
 		7016BCBB3D85CCDF660CF051 /* LongPressPopupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F658BB79741329532CC048D /* LongPressPopupView.swift */; };
 		7D5D2889CB81E51285C39650 /* LatinumApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014693196AB7FAF3E6BD2C20 /* LatinumApp.swift */; };
-		8AAE130047B9A01E81823796 /* PredictionBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 409CDFB6E3D9162A451D6343 /* PredictionBarView.swift */; };
 		992B3B772A3E303AF567F067 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D85F59F42DF819B9D7CC709F /* ContentView.swift */; };
 		A287A29984DF6BCDD0DF987D /* TokenizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F97F2ACFBF0D518EF7DB80D /* TokenizerTests.swift */; };
 		A2FF5034CA76868C47DD37B2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00C9BF0DEF44E0DACCD03F02 /* Assets.xcassets */; };
@@ -65,7 +64,6 @@
 		23FFC46520EB5B322B65FBDA /* LatinNormalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatinNormalization.swift; sourceTree = "<group>"; };
 		273022C476F5D427715A7893 /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
 		3F97F2ACFBF0D518EF7DB80D /* TokenizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenizerTests.swift; sourceTree = "<group>"; };
-		409CDFB6E3D9162A451D6343 /* PredictionBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PredictionBarView.swift; sourceTree = "<group>"; };
 		6913023984C0F15D5D438C87 /* LatinumKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LatinumKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6E10B343B9941F46B1EAF886 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		7ECAFA5C022D08C641F8E19D /* LatinLM.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; path = LatinLM.mlpackage; sourceTree = "<group>"; };
@@ -150,7 +148,6 @@
 				23FFC46520EB5B322B65FBDA /* LatinNormalization.swift */,
 				C79568B5D9D6B594DFCC9E5D /* LatinumKeyboard.entitlements */,
 				9F658BB79741329532CC048D /* LongPressPopupView.swift */,
-				409CDFB6E3D9162A451D6343 /* PredictionBarView.swift */,
 				D7295172B8319F8DEAAF5C52 /* PredictionEngine.swift */,
 				3668FB6D0AADDDE260D9F928 /* Resources */,
 			);
@@ -298,7 +295,6 @@
 				3A3B2B3EF531E8E1B963B389 /* LatinLM.mlpackage in Sources */,
 				295D4D8D73D85BB1BDFA1AE3 /* LatinNormalization.swift in Sources */,
 				7016BCBB3D85CCDF660CF051 /* LongPressPopupView.swift in Sources */,
-				8AAE130047B9A01E81823796 /* PredictionBarView.swift in Sources */,
 				D4F5692D9EDDA6026F41C2DC /* PredictionEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -86,8 +86,11 @@ class KeyboardView: UIView {
     private let charDeleteThreshold: Int = 5  // Switch to word deletion after this many chars
 
     // UI Components
-    private let predictionBar = PredictionBarView()
     private let keyboardStack = UIStackView()
+
+    // Prediction bar components (integrated into keyboardStack)
+    private var predictionLabels: [UILabel] = []
+    private var predictionSeparators: [UIView] = []
 
     // Layout constants
     private let keySpacing: CGFloat = 6
@@ -122,16 +125,14 @@ class KeyboardView: UIView {
 
     // MARK: - Layout Constants
 
-    private let predictionBarHeight: CGFloat = 33
+    private let predictionRowHeight: CGFloat = 33
     private let bottomPadding: CGFloat = 4
-    private let predictionBarSpacing: CGFloat = 4
 
     // MARK: - Setup
 
     private func setupView() {
         backgroundColor = .clear
         setupKeyboardStack()
-        setupPredictionBar()
         rebuildKeyboard()
     }
 
@@ -143,26 +144,6 @@ class KeyboardView: UIView {
             lastIsLandscape = isLandscape
             rebuildKeyboard()
         }
-
-        // Position prediction bar using frame-based layout (avoids system constraint conflicts)
-        // Only position if keyboard stack has valid frame
-        if keyboardStack.frame.minY > 0 {
-            let predictionY = keyboardStack.frame.minY - predictionBarSpacing - predictionBarHeight
-            predictionBar.frame = CGRect(
-                x: 0,
-                y: max(0, predictionY),
-                width: bounds.width,
-                height: predictionBarHeight
-            )
-        } else {
-            // Fallback: position at top of view
-            predictionBar.frame = CGRect(
-                x: 0,
-                y: 0,
-                width: bounds.width,
-                height: predictionBarHeight
-            )
-        }
     }
 
     private func setupKeyboardStack() {
@@ -172,19 +153,13 @@ class KeyboardView: UIView {
         keyboardStack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(keyboardStack)
 
-        // Anchor to bottom and sides only
+        // Anchor to all edges - prediction bar is now part of the stack
         NSLayoutConstraint.activate([
+            keyboardStack.topAnchor.constraint(equalTo: topAnchor),
             keyboardStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomPadding),
             keyboardStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: keySpacing + 1),
             keyboardStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -(keySpacing + 1)),
         ])
-    }
-
-    private func setupPredictionBar() {
-        predictionBar.delegate = self
-        // Use frame-based layout for prediction bar to avoid system constraint conflicts
-        predictionBar.translatesAutoresizingMaskIntoConstraints = true
-        addSubview(predictionBar)
     }
 
     private func rebuildKeyboard() {
@@ -203,6 +178,13 @@ class KeyboardView: UIView {
         spaceButton = nil
         spaceLabel = nil
         langLabel = nil
+        predictionLabels.removeAll()
+        predictionSeparators.removeAll()
+
+        // Build prediction row first (shared across all keyboard modes)
+        let predictionRow = createPredictionRow()
+        predictionRow.heightAnchor.constraint(equalToConstant: predictionRowHeight).isActive = true
+        keyboardStack.addArrangedSubview(predictionRow)
 
         switch keyboardMode {
         case .letters:
@@ -212,6 +194,80 @@ class KeyboardView: UIView {
         case .symbols:
             buildSymbolKeyboard()
         }
+    }
+
+    // MARK: - Prediction Row
+
+    private func createPredictionRow() -> UIView {
+        let container = UIView()
+        container.backgroundColor = UIColor.clear.withAlphaComponent(0.01)
+
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.distribution = .fillEqually
+        stackView.spacing = 0
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stackView)
+
+        NSLayoutConstraint.activate([
+            stackView.topAnchor.constraint(equalTo: container.topAnchor),
+            stackView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            stackView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+        ])
+
+        // Create three tappable areas with centered labels
+        for i in 0..<3 {
+            let tapContainer = UIView()
+            tapContainer.tag = i
+            tapContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(predictionTapped(_:))))
+
+            let label = UILabel()
+            label.font = .systemFont(ofSize: 19)
+            label.textColor = .label
+            label.textAlignment = .center
+            label.translatesAutoresizingMaskIntoConstraints = false
+            tapContainer.addSubview(label)
+
+            NSLayoutConstraint.activate([
+                label.centerXAnchor.constraint(equalTo: tapContainer.centerXAnchor),
+                label.centerYAnchor.constraint(equalTo: tapContainer.centerYAnchor, constant: -2),
+            ])
+
+            stackView.addArrangedSubview(tapContainer)
+            predictionLabels.append(label)
+        }
+
+        // Add vertical separators between predictions
+        for i in 0..<2 {
+            let separator = UIView()
+            separator.translatesAutoresizingMaskIntoConstraints = false
+            separator.isUserInteractionEnabled = false
+            separator.backgroundColor = UIColor { traits in
+                traits.userInterfaceStyle == .dark
+                    ? UIColor(white: 1.0, alpha: 0.15)
+                    : UIColor(white: 0.0, alpha: 0.12)
+            }
+            container.addSubview(separator)
+            predictionSeparators.append(separator)
+
+            NSLayoutConstraint.activate([
+                separator.trailingAnchor.constraint(equalTo: stackView.arrangedSubviews[i].trailingAnchor),
+                separator.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                separator.widthAnchor.constraint(equalToConstant: 1),
+                separator.heightAnchor.constraint(equalToConstant: 22),
+            ])
+        }
+
+        return container
+    }
+
+    @objc private func predictionTapped(_ gesture: UITapGestureRecognizer) {
+        guard let index = gesture.view?.tag,
+              index < predictionLabels.count,
+              let text = predictionLabels[index].text,
+              !text.isEmpty else { return }
+        delegate?.keyboardView(self, didSelectPrediction: text)
     }
 
     // MARK: - Letter Keyboard
@@ -819,14 +875,15 @@ class KeyboardView: UIView {
     }
 
     func updatePredictions(_ predictions: [String]) {
-        predictionBar.updatePredictions(predictions)
-    }
-}
+        for (i, label) in predictionLabels.enumerated() {
+            label.text = i < predictions.count ? predictions[i] : nil
+        }
 
-// MARK: - PredictionBarViewDelegate
-
-extension KeyboardView: PredictionBarViewDelegate {
-    func predictionBarView(_ view: PredictionBarView, didSelectPrediction prediction: String) {
-        delegate?.keyboardView(self, didSelectPrediction: prediction)
+        // Show separators only between adjacent predictions
+        for (i, separator) in predictionSeparators.enumerated() {
+            let hasLeft = predictionLabels[i].text?.isEmpty == false
+            let hasRight = predictionLabels[i + 1].text?.isEmpty == false
+            separator.isHidden = !(hasLeft && hasRight)
+        }
     }
 }
