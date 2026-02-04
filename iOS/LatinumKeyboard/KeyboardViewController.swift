@@ -32,61 +32,67 @@ class KeyboardViewController: UIInputViewController {
         // Create view hierarchy early, before system calls setInputViews:
         // This ensures the view has a valid size when the system queries it
 
-        let screenWidth = UIScreen.main.bounds.width
-        let initialHeight = calculateKeyboardHeight()
+//        let screenWidth = UIScreen.main.bounds.width
+//        let initialHeight = calculateKeyboardHeight()
 
         // Create the container view with initial frame
-        let containerView = UIView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: initialHeight))
-        containerView.backgroundColor = .clear
-        self.view = containerView
+//        let containerView = UIView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: initialHeight))
+//        containerView.backgroundColor = .clear
+//        self.view = containerView
 
         // Create and add keyboard view
         keyboardView = KeyboardView()
-        keyboardView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(keyboardView)
-
+        self.view = keyboardView
+        keyboardView.delegate = self
+        
+//        NSLayoutConstraint.activate([
+//            keyboardView.topAnchor.constraint(equalTo: super.view.topAnchor),
+//        ])
+        
         // Pin keyboard view to all edges
-        NSLayoutConstraint.activate([
-            keyboardView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            keyboardView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            keyboardView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            keyboardView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-        ])
+//        NSLayoutConstraint.activate([
+//            keyboardView.topAnchor.constraint(equalTo: super.view.topAnchor),
+//            keyboardView.bottomAnchor.constraint(equalTo: super.view.bottomAnchor),
+//            keyboardView.leadingAnchor.constraint(equalTo: super.view.leadingAnchor),
+//            keyboardView.trailingAnchor.constraint(equalTo: super.view.trailingAnchor),
+//        ])
+        
+//        keyboardView.translatesAutoresizingMaskIntoConstraints = false
+//        containerView.addSubview(keyboardView)
 
         // Set height constraint on container
-        heightConstraint = containerView.heightAnchor.constraint(equalToConstant: initialHeight)
-        heightConstraint?.priority = .defaultHigh
-        heightConstraint?.isActive = true
+//        heightConstraint = containerView.heightAnchor.constraint(equalToConstant: initialHeight)
+//        heightConstraint?.priority = .defaultHigh
+//        heightConstraint?.isActive = true
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        keyboardView.delegate = self
         setupPredictionEngine()
     }
 
     override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
+        super.viewWillAppear(false)
         updateAutoCapitalization()
         updatePredictions()
     }
 
-    override func viewWillLayoutSubviews() {
-        super.viewWillLayoutSubviews()
-        // Update height for orientation changes
-        let newHeight = calculateKeyboardHeight()
-        heightConstraint?.constant = newHeight
-    }
+//    override func viewWillLayoutSubviews() {
+//        super.viewWillLayoutSubviews()
+//        // Update height for orientation changes
+//        let newHeight = calculateKeyboardHeight()
+//        heightConstraint?.constant = newHeight
+//    }
 
     // MARK: - Setup
 
-    private func calculateKeyboardHeight() -> CGFloat {
-        let isLandscape = UIScreen.main.bounds.width > UIScreen.main.bounds.height
-        let keyHeight: CGFloat = isLandscape ? 28 : 46
-        let rowSpacing: CGFloat = isLandscape ? 8 : 10
-        // prediction row (33) + 4 key rows + 4 row spacings + bottom padding (4)
-        return 33 + (keyHeight * 4) + (rowSpacing * 4) + 4
-    }
+//    private func calculateKeyboardHeight() -> CGFloat {
+//        let isLandscape = UIScreen.main.bounds.width > UIScreen.main.bounds.height
+//        let keyHeight: CGFloat = isLandscape ? 28 : 46
+//        let rowSpacing: CGFloat = isLandscape ? 8 : 10
+//        // prediction row (33) + 4 key rows + 4 row spacings + bottom padding (4)
+//        return 0 + (keyHeight * 4) + (rowSpacing * 4) + 4
+//    }
 
     private func setupPredictionEngine() {
         predictionEngine = PredictionEngine()

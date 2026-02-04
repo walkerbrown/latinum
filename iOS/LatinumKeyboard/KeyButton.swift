@@ -14,7 +14,7 @@ class KeyButton: UIButton {
         // All keys use the same color
         return UIColor { traits in
             traits.userInterfaceStyle == .dark
-                ? UIColor(white: 0.28, alpha: 1.0)
+                ? UIColor(white: 0.25, alpha: 1.0)
                 : UIColor.white
         }
     }
@@ -87,7 +87,7 @@ class KeyButton: UIButton {
         if highlighted {
             backgroundColor = UIColor { traits in
                 traits.userInterfaceStyle == .dark
-                    ? UIColor(white: 0.28, alpha: 1.0)
+                    ? UIColor(white: 0.25, alpha: 1.0)
                     : UIColor.white
             }
         } else {

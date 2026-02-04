@@ -38,7 +38,7 @@ class LongPressPopupView: UIView {
         // Adaptive background: white in light mode, gray in dark mode
         backgroundColor = UIColor { traits in
             traits.userInterfaceStyle == .dark
-                ? UIColor(white: 0.28, alpha: 1.0)
+                ? UIColor(white: 0.25, alpha: 1.0)
                 : UIColor.white
         }
         layer.cornerRadius = 8

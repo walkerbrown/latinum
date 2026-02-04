@@ -125,8 +125,12 @@ class KeyboardView: UIView {
 
     // MARK: - Layout Constants
 
-    private let predictionRowHeight: CGFloat = 33
+    private let predictionRowHeight: CGFloat = 25
     private let bottomPadding: CGFloat = 4
+
+    // Track first appearance to apply top offset hack
+    static var isFirstAppearance = true
+    private var topConstraint: NSLayoutConstraint?
 
     // MARK: - Setup
 
@@ -146,6 +150,23 @@ class KeyboardView: UIView {
         }
     }
 
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+
+        if window != nil {
+            // Keyboard appearing - apply offset if needed
+            if KeyboardView.isFirstAppearance {
+                topConstraint?.constant = 20
+            } else {
+                topConstraint?.constant = 2
+            }
+        } else {
+            // didMoveToWindow(nil) = cycling keyboards
+            // After cycling, system gives full height, so no offset needed
+            KeyboardView.isFirstAppearance = false
+        }
+    }
+
     private func setupKeyboardStack() {
         keyboardStack.axis = .vertical
         keyboardStack.distribution = .fill
@@ -153,9 +174,10 @@ class KeyboardView: UIView {
         keyboardStack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(keyboardStack)
 
-        // Anchor to all edges - prediction bar is now part of the stack
+        topConstraint = keyboardStack.topAnchor.constraint(equalTo: topAnchor, constant: 2)
+
         NSLayoutConstraint.activate([
-            keyboardStack.topAnchor.constraint(equalTo: topAnchor),
+            topConstraint!,
             keyboardStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomPadding),
             keyboardStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: keySpacing + 1),
             keyboardStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -(keySpacing + 1)),
@@ -209,9 +231,10 @@ class KeyboardView: UIView {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(stackView)
 
+        // Center stack view vertically, pin to sides
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: container.topAnchor),
-            stackView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            stackView.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            stackView.heightAnchor.constraint(equalToConstant: 25),
             stackView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
         ])
@@ -231,7 +254,7 @@ class KeyboardView: UIView {
 
             NSLayoutConstraint.activate([
                 label.centerXAnchor.constraint(equalTo: tapContainer.centerXAnchor),
-                label.centerYAnchor.constraint(equalTo: tapContainer.centerYAnchor, constant: -2),
+                label.centerYAnchor.constraint(equalTo: tapContainer.centerYAnchor),
             ])
 
             stackView.addArrangedSubview(tapContainer)
@@ -285,6 +308,12 @@ class KeyboardView: UIView {
 
         updateShiftState(shiftState)
 
+        // Temporarily highlight, as with system keyboards
+        self.spaceButton?.backgroundColor = UIColor { traits in
+            traits.userInterfaceStyle == .dark
+            ? UIColor(white: 0.35, alpha: 1.0)
+            : UIColor(white: 1.0, alpha: 1.0)
+        }
         // Trigger space bar animation after 1 second
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.animateSpaceBar()
@@ -491,6 +520,11 @@ class KeyboardView: UIView {
         // Fade out "Lingua Latina" - LA is already visible
         UIView.animate(withDuration: 0.4) {
             spaceLabel.alpha = 0
+            self.spaceButton?.backgroundColor = UIColor { traits in
+                traits.userInterfaceStyle == .dark
+                ? UIColor(white: 0.25, alpha: 1.0)
+                : UIColor.white
+            }
         }
     }
 
