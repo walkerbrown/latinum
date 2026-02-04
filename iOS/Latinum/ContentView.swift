@@ -124,7 +124,7 @@ struct SetupContentView: View {
                     SetupStepView(
                         number: 3,
                         title: "Start Typing",
-                        description: "Switch to Latinum using the globe key"
+                        description: "Switch to the Latinum keyboard using the globe key"
                     )
                 }
                 .padding(.horizontal, 24)
