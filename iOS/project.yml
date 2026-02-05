@@ -1,6 +1,6 @@
 name: Latinum
 options:
-  bundleIdPrefix: com.latinum
+  bundleIdPrefix: org.walkerbrown.latinum
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "15.0"
@@ -28,7 +28,7 @@ targets:
       - path: Latinum/Resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.latinum.app
+        PRODUCT_BUNDLE_IDENTIFIER: org.walkerbrown.latinum.app
         INFOPLIST_FILE: Latinum/Info.plist
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: ""
@@ -51,7 +51,7 @@ targets:
       - path: LatinumKeyboard/Resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.latinum.app.keyboard
+        PRODUCT_BUNDLE_IDENTIFIER: org.walkerbrown.latinum.app.keyboard
         INFOPLIST_FILE: LatinumKeyboard/Info.plist
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: ""
@@ -62,7 +62,7 @@ targets:
       path: LatinumKeyboard/LatinumKeyboard.entitlements
       properties:
         com.apple.security.application-groups:
-          - group.com.latinum.shared
+          - group.org.walkerbrown.latinum.shared
 
   LatinumTests:
     type: bundle.unit-test
@@ -76,7 +76,7 @@ targets:
       - path: LatinumKeyboard/NGramPredictionSource.swift
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.latinum.tests
+        PRODUCT_BUNDLE_IDENTIFIER: org.walkerbrown.latinum.tests
         INFOPLIST_FILE: LatinumTests/Info.plist
     dependencies:
       - target: Latinum

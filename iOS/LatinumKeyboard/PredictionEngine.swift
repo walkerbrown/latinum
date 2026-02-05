@@ -31,7 +31,7 @@ class PredictionEngine {
     private var sources: [PredictionSource] = []
 
     /// Dedicated serial queue for all inference work (keeps main thread free)
-    private let inferenceQueue = DispatchQueue(label: "com.latinum.prediction", qos: .userInitiated)
+    private let inferenceQueue = DispatchQueue(label: "org.walkerbrown.latinum.prediction", qos: .userInitiated)
 
     /// Callback invoked on main thread when data finishes loading
     var onDataLoaded: (() -> Void)?

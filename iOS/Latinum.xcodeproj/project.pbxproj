@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01AD544A931027A054B1D295 /* KeyboardFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E2F309C7542DDA92182B48 /* KeyboardFeedback.swift */; };
 		074F54D650854E83838750E3 /* LatinNormalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FFC46520EB5B322B65FBDA /* LatinNormalization.swift */; };
 		0CA85FE7985C6AC1EDF914E9 /* LatinumKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6913023984C0F15D5D438C87 /* LatinumKeyboard.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		1D74784B59A2958FB5DF6A09 /* PredictionSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC72B6218D11B463403569B7 /* PredictionSourceTests.swift */; };
@@ -67,6 +68,7 @@
 		05F4F9E1E952BAE48CC65646 /* KeyButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyButton.swift; sourceTree = "<group>"; };
 		23FFC46520EB5B322B65FBDA /* LatinNormalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatinNormalization.swift; sourceTree = "<group>"; };
 		273022C476F5D427715A7893 /* KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardView.swift; sourceTree = "<group>"; };
+		41E2F309C7542DDA92182B48 /* KeyboardFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFeedback.swift; sourceTree = "<group>"; };
 		6913023984C0F15D5D438C87 /* LatinumKeyboard.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = LatinumKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6E10B343B9941F46B1EAF886 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		864D73DE536B8D4B4EC80603 /* NGramPredictionSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NGramPredictionSource.swift; sourceTree = "<group>"; };
@@ -149,6 +151,7 @@
 			children = (
 				99C8E7EC0F4AF9A38FBE7DFF /* FrequencyCompletionSource.swift */,
 				F56F5F483E2C712C57CB58E5 /* Info.plist */,
+				41E2F309C7542DDA92182B48 /* KeyboardFeedback.swift */,
 				273022C476F5D427715A7893 /* KeyboardView.swift */,
 				6E10B343B9941F46B1EAF886 /* KeyboardViewController.swift */,
 				05F4F9E1E952BAE48CC65646 /* KeyButton.swift */,
@@ -288,6 +291,7 @@
 			files = (
 				AEEB250A2C09431CBE5802BC /* FrequencyCompletionSource.swift in Sources */,
 				3D50D8BA48A5D5ED9C7DD8D3 /* KeyButton.swift in Sources */,
+				01AD544A931027A054B1D295 /* KeyboardFeedback.swift in Sources */,
 				A39005F953B522949612E911 /* KeyboardView.swift in Sources */,
 				48C5996AA55AAF7C0F4807FA /* KeyboardViewController.swift in Sources */,
 				295D4D8D73D85BB1BDFA1AE3 /* LatinNormalization.swift in Sources */,
@@ -348,7 +352,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.latinum.app.keyboard;
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app.keyboard;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -367,7 +371,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.latinum.app;
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -443,7 +447,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.latinum.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Latinum.app/Latinum";
@@ -460,7 +464,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.latinum.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.tests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Latinum.app/Latinum";
@@ -546,7 +550,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.latinum.app;
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -565,7 +569,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.latinum.app.keyboard;
+				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app.keyboard;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
