@@ -23,6 +23,12 @@ class KeyboardViewController: UIInputViewController {
     /// The text currently being typed (for prediction context)
     private var currentWord: String = ""
 
+    /// Previously computed current word (to avoid redundant prediction updates)
+    private var lastCurrentWord: String?
+
+    /// Cached raw predictions (before capitalization)
+    private var rawPredictions: [String] = []
+
     // MARK: - Lifecycle
 
     override func loadView() {
@@ -40,6 +46,7 @@ class KeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         updateAutoCapitalization()
         updatePredictions()
+        applyPredictionCapitalization()
     }
 
     // MARK: - Setup
@@ -80,12 +87,20 @@ class KeyboardViewController: UIInputViewController {
         currentWord = word
     }
 
-    /// Update prediction suggestions based on current context
+    /// Update prediction suggestions based on current context (only if current word changed)
     private func updatePredictions() {
+        // Skip if current word hasn't changed
+        guard currentWord != lastCurrentWord else { return }
+        lastCurrentWord = currentWord
+
         let context = textDocumentProxy.documentContextBeforeInput ?? ""
-        let predictions = predictionEngine.predict(context: context, currentWord: currentWord)
-        // Apply capitalization based on current shift state
-        let capitalizedPredictions = predictions.map { applyCapitalization($0) }
+        rawPredictions = predictionEngine.predict(context: context, currentWord: currentWord)
+        applyPredictionCapitalization()
+    }
+
+    /// Re-apply capitalization to cached predictions (for shift state changes)
+    private func applyPredictionCapitalization() {
+        let capitalizedPredictions = rawPredictions.map { applyCapitalization($0) }
         keyboardView.updatePredictions(capitalizedPredictions)
     }
 
@@ -251,14 +266,14 @@ class KeyboardViewController: UIInputViewController {
             shiftState = .lowercase
         }
         keyboardView.updateShiftState(shiftState)
-        updatePredictions()
+        applyPredictionCapitalization()
     }
 
     /// Enable caps lock (double-tap shift)
     func enableCapsLock() {
         shiftState = .capsLock
         keyboardView.updateShiftState(shiftState)
-        updatePredictions()
+        applyPredictionCapitalization()
     }
 
     /// Apply a prediction suggestion
@@ -280,6 +295,8 @@ class KeyboardViewController: UIInputViewController {
             keyboardView.updateShiftState(shiftState)
         }
 
+        // Force prediction update for new context
+        lastCurrentWord = nil
         updatePredictions()
     }
 
