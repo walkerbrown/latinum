@@ -1,20 +1,5 @@
 import UIKit
 
-/// A view that expands its hit testing area beyond its bounds
-private class ExpandedHitAreaView: UIView {
-    var hitAreaInsets: UIEdgeInsets = .zero
-
-    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        let expandedBounds = bounds.inset(by: UIEdgeInsets(
-            top: -hitAreaInsets.top,
-            left: -hitAreaInsets.left,
-            bottom: -hitAreaInsets.bottom,
-            right: -hitAreaInsets.right
-        ))
-        return expandedBounds.contains(point)
-    }
-}
-
 /// Protocol for keyboard view delegate
 protocol KeyboardViewDelegate: AnyObject {
     func keyboardView(_ view: KeyboardView, didTapKey key: String)
@@ -140,8 +125,9 @@ class KeyboardView: UIView {
 
     // MARK: - Layout Constants
 
-    private let predictionRowHeight: CGFloat = 25
-    private let edgePadding: CGFloat = 4
+    private let predictionRowHeight: CGFloat = 28
+    private let topEdgePadding: CGFloat = 9  // Hand-tuned to accomodate capital accented pop-up keys
+    private let bottomEdgePadding: CGFloat = 4  // Hand-tuned to align with system keyboards
 
     // MARK: - Setup
 
@@ -168,15 +154,15 @@ class KeyboardView: UIView {
         addSubview(keyboardStack)
 
         NSLayoutConstraint.activate([
-            keyboardStack.topAnchor.constraint(equalTo: topAnchor, constant: edgePadding),
-            keyboardStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -edgePadding),
+            keyboardStack.topAnchor.constraint(equalTo: topAnchor, constant: topEdgePadding),
+            keyboardStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomEdgePadding),
             keyboardStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: keySpacing + 1),
             keyboardStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -(keySpacing + 1)),
         ])
     }
 
     /// Minimum height for spacers between rows
-    private let minSpacerHeight: CGFloat = 8
+    private let minSpacerHeight: CGFloat = 10
 
     /// Creates a flexible spacer view for use between keyboard rows
     private func createSpacer() -> UIView {
@@ -204,11 +190,6 @@ class KeyboardView: UIView {
         predictionSeparators.removeAll()
         rowSpacers.removeAll()
         predictionSpacer = nil
-
-        // Add top spacer before prediction row
-        let topSpacer = createSpacer()
-        keyboardStack.addArrangedSubview(topSpacer)
-        rowSpacers.append(topSpacer)
 
         // Build prediction row (shared across all keyboard modes)
         let predictionRow = createPredictionRow()
@@ -241,12 +222,8 @@ class KeyboardView: UIView {
 
     // MARK: - Prediction Row
 
-    /// Extra vertical hit area for prediction row taps (extends into spacers)
-    private let predictionHitAreaExtension: CGFloat = 4
-
     private func createPredictionRow() -> UIView {
-        let container = ExpandedHitAreaView()
-        container.hitAreaInsets = UIEdgeInsets(top: predictionHitAreaExtension, left: 0, bottom: predictionHitAreaExtension, right: 0)
+        let container = UIView()
         container.backgroundColor = UIColor.clear.withAlphaComponent(0.01)
 
         let stackView = UIStackView()
