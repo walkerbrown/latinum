@@ -23,14 +23,19 @@ class KeyboardViewController: UIInputViewController {
     /// The text currently being typed (for prediction context)
     private var currentWord: String = ""
 
-    /// Previously computed current word (to avoid redundant prediction updates)
-    private var lastCurrentWord: String?
-
     /// Cached raw predictions (before capitalization)
     private var rawPredictions: [String] = []
 
     /// Cached keyboard type to detect changes
     private var lastKeyboardType: UIKeyboardType?
+
+    /// Whether text is currently selected (for word-highlight prediction)
+    private var hasSelection: Bool = false
+
+    // Prediction scheduling: debounce rapid keystrokes and discard stale results
+    private var predictionDebounceTimer: Timer?
+    private var predictionGeneration: UInt = 0
+    private let predictionDebounceInterval: TimeInterval = 0.15
 
     // MARK: - Lifecycle
 
@@ -49,7 +54,7 @@ class KeyboardViewController: UIInputViewController {
         super.viewWillAppear(animated)
         updateKeyboardConfiguration()
         updateAutoCapitalization()
-        updatePredictions()
+        schedulePredictionUpdate()
         applyPredictionCapitalization()
     }
 
@@ -72,6 +77,10 @@ class KeyboardViewController: UIInputViewController {
 
     private func setupPredictionEngine() {
         predictionEngine = PredictionEngine()
+        predictionEngine.onDataLoaded = { [weak self] in
+            // Data is now available — trigger an immediate prediction refresh
+            self?.schedulePredictionUpdate()
+        }
         predictionEngine.load()
     }
 
@@ -80,9 +89,20 @@ class KeyboardViewController: UIInputViewController {
     override func textDidChange(_ textInput: UITextInput?) {
         // Update keyboard configuration (type, globe visibility) when context changes
         updateKeyboardConfiguration()
+
+        // If the user has selected/highlighted a word, use it as the prediction prefix
+        if let selected = textDocumentProxy.selectedText,
+           !selected.trimmingCharacters(in: .whitespaces).isEmpty {
+            currentWord = selected.trimmingCharacters(in: .whitespaces)
+            hasSelection = true
+            schedulePredictionUpdate()
+            return
+        }
+
+        hasSelection = false
         // Update context when text changes externally
         updateCurrentWord()
-        updatePredictions()
+        schedulePredictionUpdate()
     }
 
     /// Get the current word being typed from the text document context
@@ -104,15 +124,38 @@ class KeyboardViewController: UIInputViewController {
         currentWord = word
     }
 
-    /// Update prediction suggestions based on current context (only if current word changed)
-    private func updatePredictions() {
-        // Skip if current word hasn't changed
-        guard currentWord != lastCurrentWord else { return }
-        lastCurrentWord = currentWord
+    // MARK: - Prediction Scheduling
+
+    /// Schedule a debounced prediction update.
+    /// Resets the debounce timer on each call so rapid keystrokes coalesce into a
+    /// single inference request once typing pauses for `predictionDebounceInterval`.
+    /// Any in-flight prediction whose generation is stale will be discarded on arrival.
+    private func schedulePredictionUpdate() {
+        predictionDebounceTimer?.invalidate()
+        predictionDebounceTimer = Timer.scheduledTimer(
+            withTimeInterval: predictionDebounceInterval,
+            repeats: false
+        ) { [weak self] _ in
+            self?.performPredictionUpdate()
+        }
+    }
+
+    /// Dispatch prediction work to the inference queue.
+    private func performPredictionUpdate() {
+        predictionGeneration &+= 1
+        let generation = predictionGeneration
 
         let context = textDocumentProxy.documentContextBeforeInput ?? ""
-        rawPredictions = predictionEngine.predict(context: context, currentWord: currentWord)
-        applyPredictionCapitalization()
+        let word = currentWord
+
+        predictionEngine.predictAsync(context: context, currentWord: word) { [weak self] predictions in
+            guard let self = self else { return }
+            // Discard if a newer request has been issued since this one was dispatched
+            guard generation == self.predictionGeneration else { return }
+
+            self.rawPredictions = predictions
+            self.applyPredictionCapitalization()
+        }
     }
 
     /// Re-apply capitalization to cached predictions (for shift state changes)
@@ -205,7 +248,7 @@ class KeyboardViewController: UIInputViewController {
         }
 
         updateCurrentWord()
-        updatePredictions()
+        schedulePredictionUpdate()
     }
 
     /// Insert a special character (macron, ligature)
@@ -218,14 +261,14 @@ class KeyboardViewController: UIInputViewController {
         }
 
         updateCurrentWord()
-        updatePredictions()
+        schedulePredictionUpdate()
     }
 
     /// Handle backspace
     func deleteBackward() {
         textDocumentProxy.deleteBackward()
         updateCurrentWord()
-        updatePredictions()
+        schedulePredictionUpdate()
         updateAutoCapitalization()
     }
 
@@ -257,7 +300,7 @@ class KeyboardViewController: UIInputViewController {
         }
 
         updateCurrentWord()
-        updatePredictions()
+        schedulePredictionUpdate()
         updateAutoCapitalization()
     }
 
@@ -271,7 +314,7 @@ class KeyboardViewController: UIInputViewController {
             keyboardView.updateShiftState(shiftState)
         }
 
-        updatePredictions()
+        schedulePredictionUpdate()
         updateAutoCapitalization()
     }
 
@@ -288,7 +331,7 @@ class KeyboardViewController: UIInputViewController {
         shiftState = .uppercase
         keyboardView.updateShiftState(shiftState)
 
-        updatePredictions()
+        schedulePredictionUpdate()
     }
 
     /// Handle return key
@@ -302,7 +345,7 @@ class KeyboardViewController: UIInputViewController {
             keyboardView.updateShiftState(shiftState)
         }
 
-        updatePredictions()
+        schedulePredictionUpdate()
         // Auto-cap will re-enable uppercase for new paragraph if appropriate
         updateAutoCapitalization()
     }
@@ -330,9 +373,17 @@ class KeyboardViewController: UIInputViewController {
 
     /// Apply a prediction suggestion
     func applyPrediction(_ prediction: String) {
-        // Delete the current partial word
-        for _ in 0..<currentWord.count {
-            textDocumentProxy.deleteBackward()
+        // When there's a selection, delete the selected text first
+        if hasSelection, let selected = textDocumentProxy.selectedText {
+            for _ in 0..<selected.count {
+                textDocumentProxy.deleteBackward()
+            }
+            hasSelection = false
+        } else {
+            // Delete the current partial word
+            for _ in 0..<currentWord.count {
+                textDocumentProxy.deleteBackward()
+            }
         }
 
         // Prediction is already capitalized as displayed, insert directly
@@ -347,9 +398,7 @@ class KeyboardViewController: UIInputViewController {
             keyboardView.updateShiftState(shiftState)
         }
 
-        // Force prediction update for new context
-        lastCurrentWord = nil
-        updatePredictions()
+        schedulePredictionUpdate()
     }
 
     /// Advance to next input mode (globe key)

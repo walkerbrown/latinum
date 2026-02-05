@@ -118,7 +118,7 @@ struct SetupContentView: View {
                     SetupStepView(
                         number: 2,
                         title: "Add Keyboard",
-                        description: "Tap 'Add New Keyboard...' and select 'Latinum'"
+                        description: "Tap 'Add New Keyboard' and select 'Latinum'"
                     )
 
                     SetupStepView(

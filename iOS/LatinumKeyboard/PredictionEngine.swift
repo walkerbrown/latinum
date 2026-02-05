@@ -1,229 +1,217 @@
 import Foundation
-import CoreML
 
-/// Engine for generating Latin word predictions using Core ML model
+/// Protocol for pluggable prediction sources.
+/// Each source provides completions and/or next-word predictions independently.
+/// The PredictionEngine merges results from all registered sources.
 ///
-/// This class handles:
-/// - Loading the Core ML model
-/// - Normalizing input text (stripping macrons for model queries)
-/// - Generating completions based on context
-/// - Preserving user-entered macrons in suggestions
+/// Future sources: UILexicon (system autocorrection lexicon), user-trained n-gram model,
+/// domain-specific dictionaries (ecclesiastical Latin, classical Latin, etc.)
+protocol PredictionSource: AnyObject {
+    /// Unique identifier for this source (for deduplication and priority)
+    var identifier: String { get }
+
+    /// Return word completions for the given prefix, ordered by confidence.
+    func completions(context: String, prefix: String) -> [String]
+
+    /// Return next-word predictions when no prefix is being typed.
+    func nextWordPredictions(context: String) -> [String]
+}
+
+/// Engine for generating Latin word predictions.
+///
+/// Coordinates one or more `PredictionSource` instances and manages:
+/// - Async inference on a dedicated serial queue
+/// - Merging and deduplicating results across sources
+/// - Macron/diacritic preservation
 class PredictionEngine {
 
     // MARK: - Properties
 
-    /// The Core ML model for predictions
-    private var model: MLModel?
+    /// Registered prediction sources, queried in order of priority
+    private var sources: [PredictionSource] = []
 
-    /// Tokenizer for encoding/decoding text
-    private let tokenizer = CharacterTokenizer()
+    /// Dedicated serial queue for all inference work (keeps main thread free)
+    private let inferenceQueue = DispatchQueue(label: "com.latinum.prediction", qos: .userInitiated)
 
-    /// Maximum context length for the model
-    private let maxContextLength = 64
+    /// Callback invoked on main thread when data finishes loading
+    var onDataLoaded: (() -> Void)?
 
-    /// Whether the model loaded successfully
-    private(set) var isLoaded = false
+    /// Whether the primary data sources have loaded
+    var isDataLoaded: Bool {
+        return frequencySource.isLoaded || ngramSource.isLoaded
+    }
 
-    /// Fallback word list for when model is unavailable
-    private var fallbackWords: [String] = []
+    /// Frequency-based word completion source
+    private let frequencySource = FrequencyCompletionSource()
+
+    /// N-gram next-word prediction source
+    private let ngramSource = NGramPredictionSource()
+
+    /// Hardcoded fallback source (always available)
+    private let fallbackSource = FallbackPredictionSource()
 
     // MARK: - Initialization
 
     init() {
-        loadFallbackWords()
+        // Source chain: frequency for completions, n-gram for next-word, fallback last.
+        sources = [frequencySource, ngramSource, fallbackSource]
     }
 
-    // MARK: - Model Loading
+    // MARK: - Source Management
 
-    /// Load the Core ML model
+    /// Insert a prediction source at the given priority index.
+    /// Lower index = higher priority. Sources are queried in order.
+    func addSource(_ source: PredictionSource, at index: Int? = nil) {
+        let insertIndex = index ?? max(sources.count - 1, 0) // before fallback by default
+        sources.insert(source, at: min(insertIndex, sources.count))
+    }
+
+    // MARK: - Data Loading
+
+    /// Load JSON data files asynchronously to avoid blocking keyboard launch.
+    /// Fallback predictions are used until the data is ready.
     func load() {
-        // Try to load the ML model
-        do {
-            // Look for model in the extension bundle
-            if let modelURL = Bundle.main.url(forResource: "LatinLM", withExtension: "mlmodelc") {
-                let config = MLModelConfiguration()
-                config.computeUnits = .all  // Let Core ML decide CPU/GPU/ANE
-                model = try MLModel(contentsOf: modelURL, configuration: config)
-                isLoaded = true
-                print("Loaded Core ML model successfully")
-            } else {
-                print("Core ML model not found, using fallback")
+        inferenceQueue.async { [weak self] in
+            guard let self = self else { return }
+            self.frequencySource.loadData()
+            self.ngramSource.loadData()
+
+            DispatchQueue.main.async {
+                self.onDataLoaded?()
             }
-        } catch {
-            print("Failed to load Core ML model: \(error)")
         }
     }
 
-    /// Load fallback word list
-    private func loadFallbackWords() {
-        // Common Latin words for fallback predictions
-        fallbackWords = [
-            "et", "in", "est", "non", "cum", "ad", "ut", "qui", "quod", "sed",
-            "ex", "de", "ab", "per", "pro", "hoc", "aut", "nec", "ac", "si",
-            "esse", "sunt", "erat", "fuit", "habet", "dicit", "facit", "videt",
-            "amare", "habere", "dicere", "facere", "videre", "scire", "posse",
-            "magnus", "bonus", "malus", "novus", "primus", "omnis", "totus",
-            "homo", "deus", "rex", "terra", "aqua", "caelum", "bellum", "verbum",
-            "Roma", "Caesar", "Marcus", "Cicero", "Seneca",
-        ]
-    }
+    // MARK: - Async Prediction
 
-    // MARK: - Prediction
-
-    /// Generate predictions for the current context
+    /// Generate predictions asynchronously on the inference queue.
+    /// Results are delivered on the main thread via the completion handler.
     ///
     /// - Parameters:
     ///   - context: Full text context before cursor
-    ///   - currentWord: The word currently being typed
-    /// - Returns: Array of prediction strings (max 3)
-    func predict(context: String, currentWord: String) -> [String] {
-        // If no current word, predict next word
-        if currentWord.isEmpty {
-            return predictNextWord(context: context)
-        }
+    ///   - currentWord: The word currently being typed (empty for next-word prediction)
+    ///   - completion: Called on main thread with prediction results (max 3)
+    func predictAsync(context: String, currentWord: String, completion: @escaping ([String]) -> Void) {
+        inferenceQueue.async { [weak self] in
+            guard let self = self else {
+                DispatchQueue.main.async { completion([]) }
+                return
+            }
 
-        // Otherwise, complete the current word
-        return completeWord(context: context, prefix: currentWord)
+            let results: [String]
+            if currentWord.isEmpty {
+                results = self.mergedNextWordPredictions(context: context)
+            } else {
+                results = self.mergedCompletions(context: context, prefix: currentWord)
+            }
+
+            DispatchQueue.main.async {
+                completion(results)
+            }
+        }
     }
 
-    /// Complete the current word being typed
-    private func completeWord(context: String, prefix: String) -> [String] {
-        // Normalize prefix for model query (remove macrons but remember them)
+    // MARK: - Source Merging
+
+    /// Merge completions from all sources, preserving diacritics and deduplicating.
+    private func mergedCompletions(context: String, prefix: String) -> [String] {
         let normalizedPrefix = LatinNormalization.stripMacrons(prefix)
+        var seen = Set<String>()
+        var merged: [String] = []
 
-        // Get model predictions
-        var completions: [String]
-        if isLoaded, let _ = model {
-            completions = getModelCompletions(context: context, prefix: normalizedPrefix)
-        } else {
-            completions = getFallbackCompletions(prefix: normalizedPrefix)
-        }
-
-        // Apply macron preservation - keep user's macrons in suggestions
-        completions = completions.map { completion in
-            LatinNormalization.applyCompletionPreservingDiacritics(
-                userText: prefix,
-                completion: completion
-            )
-        }
-
-        return Array(completions.prefix(3))
-    }
-
-    /// Predict the next word after a space
-    private func predictNextWord(context: String) -> [String] {
-        if isLoaded, let _ = model {
-            return getModelNextWords(context: context)
-        } else {
-            // Return common Latin words as fallback
-            return Array(fallbackWords.shuffled().prefix(3))
-        }
-    }
-
-    // MARK: - Model Inference
-
-    /// Get completions from the Core ML model
-    private func getModelCompletions(context: String, prefix: String) -> [String] {
-        guard let model = model else { return [] }
-
-        // Normalize full context
-        let normalizedContext = LatinNormalization.normalizeForModel(context)
-
-        // Encode context
-        var inputIds = tokenizer.encode(normalizedContext, addBos: true)
-
-        // Truncate to max length
-        if inputIds.count > maxContextLength {
-            inputIds = Array(inputIds.suffix(maxContextLength))
-        }
-
-        // Pad to fixed length
-        while inputIds.count < maxContextLength {
-            inputIds.insert(CharacterTokenizer.padId, at: 0)
-        }
-
-        // Generate completions using beam search
-        var completions: [String] = []
-
-        do {
-            // Run model inference
-            let inputArray = try MLMultiArray(shape: [1, NSNumber(value: maxContextLength)], dataType: .int32)
-            for (i, id) in inputIds.enumerated() {
-                inputArray[i] = NSNumber(value: id)
-            }
-
-            let prediction = try model.prediction(from: MLDictionaryFeatureProvider(
-                dictionary: ["input_ids": MLFeatureValue(multiArray: inputArray)]
-            ))
-
-            if let logits = prediction.featureValue(for: "logits")?.multiArrayValue {
-                // Get top characters
-                let topChars = getTopCharacters(from: logits, k: 5)
-
-                // Generate completions by continuing from prefix
-                for char in topChars {
-                    let completion = prefix + String(char)
-                    completions.append(completion)
+        for source in sources {
+            let completions = source.completions(context: context, prefix: normalizedPrefix)
+            for completion in completions {
+                let preserved = LatinNormalization.applyCompletionPreservingDiacritics(
+                    userText: prefix,
+                    completion: completion
+                )
+                let key = preserved.lowercased()
+                if !seen.contains(key) {
+                    seen.insert(key)
+                    merged.append(preserved)
                 }
+                if merged.count >= 3 { break }
             }
-        } catch {
-            print("Model inference error: \(error)")
+            if merged.count >= 3 { break }
         }
 
-        return completions
+        return Array(merged.prefix(3))
     }
 
-    /// Get next word predictions from model
-    private func getModelNextWords(context: String) -> [String] {
-        // Similar to getModelCompletions but starts from space
-        // For now, use fallback
-        return Array(fallbackWords.shuffled().prefix(3))
-    }
+    /// Merge next-word predictions from all sources, deduplicating.
+    private func mergedNextWordPredictions(context: String) -> [String] {
+        var seen = Set<String>()
+        var merged: [String] = []
 
-    /// Extract top K characters from logits
-    private func getTopCharacters(from logits: MLMultiArray, k: Int) -> [Character] {
-        var scores: [(Int, Float)] = []
-
-        for i in 0..<logits.count {
-            scores.append((i, logits[i].floatValue))
-        }
-
-        // Sort by score descending
-        scores.sort { $0.1 > $1.1 }
-
-        // Convert top K to characters
-        var chars: [Character] = []
-        for (id, _) in scores.prefix(k) {
-            if let char = CharacterTokenizer.idToChar[id] {
-                chars.append(char)
+        for source in sources {
+            let predictions = source.nextWordPredictions(context: context)
+            for prediction in predictions {
+                let key = prediction.lowercased()
+                if !seen.contains(key) {
+                    seen.insert(key)
+                    merged.append(prediction)
+                }
+                if merged.count >= 3 { break }
             }
+            if merged.count >= 3 { break }
         }
 
-        return chars
+        return Array(merged.prefix(3))
     }
+}
 
-    // MARK: - Fallback Predictions
+// MARK: - Fallback Prediction Source
 
-    /// Get fallback completions when model is unavailable
-    private func getFallbackCompletions(prefix: String) -> [String] {
+/// Low-priority source using a hardcoded list of common Latin words.
+/// Always available, used when JSON data has not yet loaded or returns no results.
+class FallbackPredictionSource: PredictionSource {
+
+    let identifier = "fallback"
+
+    private let words: [String] = [
+        // Function words (most frequent in any Latin text)
+        "et", "in", "est", "non", "cum", "ad", "ut", "qui", "quod", "sed",
+        "ex", "de", "ab", "per", "pro", "hoc", "aut", "nec", "ac", "si",
+        "iam", "tamen", "enim", "autem", "nam", "quidem", "atque", "nunc",
+        "ergo", "ita", "sic", "quam", "tam", "ubi", "unde", "ibi", "hinc",
+        "ante", "post", "inter", "super", "sub", "apud", "contra", "propter",
+        // Common verbs
+        "esse", "sunt", "erat", "fuit", "habet", "dicit", "facit", "videt",
+        "amare", "habere", "dicere", "facere", "videre", "scire", "posse",
+        "venit", "fecit", "dixit", "dedit", "cepit", "misit", "posuit",
+        "ait", "inquit", "iussit", "voluit", "potuit", "debuit",
+        // Common nouns
+        "homo", "deus", "rex", "terra", "aqua", "caelum", "bellum", "verbum",
+        "animus", "corpus", "tempus", "nomen", "genus", "opus", "ius",
+        "res", "dies", "manus", "domus", "urbs", "gens", "pars", "vox",
+        "vita", "mors", "pax", "lux", "vis", "lex", "fides", "spes",
+        // Common adjectives
+        "magnus", "bonus", "malus", "novus", "primus", "omnis", "totus",
+        "alius", "alter", "nullus", "ullus", "multus", "parvus", "longus",
+        // Pronouns and demonstratives
+        "ego", "tu", "nos", "vos", "se", "ille", "ipse", "hic", "is",
+        "quis", "quae", "meus", "tuus", "suus", "noster", "vester",
+        // Proper nouns
+        "Roma", "Caesar", "Marcus", "Cicero", "Seneca",
+    ]
+
+    func completions(context: String, prefix: String) -> [String] {
+        guard !prefix.isEmpty else { return [] }
         let lowercasePrefix = prefix.lowercased()
+        let matches = words
+            .filter { $0.lowercased().hasPrefix(lowercasePrefix) && $0.lowercased() != lowercasePrefix }
+            .sorted { $0.count < $1.count }
 
-        // Filter words that start with prefix
-        let matches = fallbackWords.filter { word in
-            word.lowercased().hasPrefix(lowercasePrefix)
-        }
-
-        // Sort by length (shorter = more likely to be wanted)
-        let sorted = matches.sorted { $0.count < $1.count }
-
-        // Match case of first letter
-        let cased = sorted.map { word -> String in
+        return matches.map { word in
             if let first = prefix.first, first.isUppercase {
                 return word.prefix(1).uppercased() + word.dropFirst()
             }
             return word
         }
+    }
 
-        return Array(cased.prefix(3))
+    func nextWordPredictions(context: String) -> [String] {
+        return Array(words.prefix(20).shuffled().prefix(3))
     }
 }
