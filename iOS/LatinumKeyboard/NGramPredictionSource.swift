@@ -22,8 +22,9 @@ class NGramPredictionSource: PredictionSource {
     // MARK: - Loading
 
     /// Load `ngrams.json` synchronously (called from the inference queue).
-    func loadData() {
-        guard let url = Bundle.main.url(forResource: "ngrams", withExtension: "json") else {
+    func loadData(bundle: Bundle = .main) {
+        guard let url = bundle.url(forResource: "ngrams", withExtension: "json") else {
+            // JSON resource not found in bundle
             return
         }
         do {
@@ -73,7 +74,6 @@ class NGramPredictionSource: PredictionSource {
 
             isLoaded = true
         } catch {
-            print("NGramPredictionSource: failed to load data – \(error)")
         }
     }
 

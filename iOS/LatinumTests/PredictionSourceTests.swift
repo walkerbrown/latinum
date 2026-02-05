@@ -163,80 +163,145 @@ final class PredictionSourceTests: XCTestCase {
 
     func testEngine_predictsWithFallback_beforeDataLoad() {
         let engine = PredictionEngine()
-        let expectation = XCTestExpectation(description: "Prediction completes")
-        engine.predictAsync(context: "", currentWord: "mag") { results in
-            XCTAssertFalse(results.isEmpty, "Fallback should provide completions")
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 2.0)
+        let results = engine.predict(context: "", currentWord: "mag")
+        XCTAssertFalse(results.isEmpty, "Fallback should provide completions")
     }
 
     func testEngine_nextWordPredictions_fallback() {
         let engine = PredictionEngine()
-        let expectation = XCTestExpectation(description: "Next-word prediction completes")
-        engine.predictAsync(context: "in", currentWord: "") { results in
-            XCTAssertEqual(results.count, 3, "Should return 3 predictions from fallback")
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 2.0)
+        let results = engine.predict(context: "in", currentWord: "")
+        XCTAssertEqual(results.count, 3, "Should return 3 predictions from fallback")
     }
 
     func testEngine_maxThreePredictions() {
         let engine = PredictionEngine()
-        let expectation = XCTestExpectation(description: "Prediction completes")
-        engine.predictAsync(context: "", currentWord: "a") { results in
-            XCTAssertLessThanOrEqual(results.count, 3,
-                                     "Should return at most 3 predictions")
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 2.0)
+        let results = engine.predict(context: "", currentWord: "a")
+        XCTAssertLessThanOrEqual(results.count, 3,
+                                 "Should return at most 3 predictions")
     }
 
     func testEngine_noMatchReturnsEmpty() {
         let engine = PredictionEngine()
-        let expectation = XCTestExpectation(description: "Prediction completes")
-        engine.predictAsync(context: "", currentWord: "xyzzy") { results in
-            XCTAssertTrue(results.isEmpty,
-                          "Should return empty for a prefix with no matches")
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 2.0)
+        let results = engine.predict(context: "", currentWord: "xyzzy")
+        XCTAssertTrue(results.isEmpty,
+                      "Should return empty for a prefix with no matches")
     }
 
     func testEngine_deduplicatesAcrossSources() {
         let engine = PredictionEngine()
-        let expectation = XCTestExpectation(description: "Prediction completes")
         // "mag" matches "magnus" in fallback; results should have no duplicates
-        engine.predictAsync(context: "", currentWord: "mag") { results in
-            let lowered = results.map { $0.lowercased() }
-            XCTAssertEqual(lowered.count, Set(lowered).count,
-                           "Results should contain no duplicates")
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 2.0)
+        let results = engine.predict(context: "", currentWord: "mag")
+        let lowered = results.map { $0.lowercased() }
+        XCTAssertEqual(lowered.count, Set(lowered).count,
+                       "Results should contain no duplicates")
     }
 
     func testEngine_emptyCurrentWord_triggersNextWord() {
         let engine = PredictionEngine()
-        let expectation = XCTestExpectation(description: "Prediction completes")
-        engine.predictAsync(context: "Roma", currentWord: "") { results in
-            // With fallback only, we get shuffled common words — just verify we get some
-            XCTAssertFalse(results.isEmpty,
-                           "Empty currentWord should trigger next-word prediction")
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 2.0)
+        // With fallback only, we get shuffled common words — just verify we get some
+        let results = engine.predict(context: "Roma", currentWord: "")
+        XCTAssertFalse(results.isEmpty,
+                       "Empty currentWord should trigger next-word prediction")
     }
 
     func testEngine_predictionsAreNotEmpty_strings() {
         let engine = PredictionEngine()
-        let expectation = XCTestExpectation(description: "Prediction completes")
-        engine.predictAsync(context: "", currentWord: "e") { results in
-            for result in results {
-                XCTAssertFalse(result.isEmpty, "Each prediction should be non-empty")
-            }
-            expectation.fulfill()
+        let results = engine.predict(context: "", currentWord: "e")
+        for result in results {
+            XCTAssertFalse(result.isEmpty, "Each prediction should be non-empty")
         }
-        wait(for: [expectation], timeout: 2.0)
+    }
+
+    // MARK: - FrequencyCompletionSource — With Real Data
+
+    private var testBundle: Bundle { Bundle(for: type(of: self)) }
+
+    func testFrequency_loadData_succeeds() {
+        let source = FrequencyCompletionSource()
+        source.loadData(bundle: testBundle)
+        XCTAssertTrue(source.isLoaded, "Should successfully load word_frequencies.json")
+    }
+
+    func testFrequency_completions_returnsResults() {
+        let source = FrequencyCompletionSource()
+        source.loadData(bundle: testBundle)
+        let results = source.completions(context: "", prefix: "mag")
+        XCTAssertFalse(results.isEmpty, "Should return completions for 'mag'")
+    }
+
+    func testFrequency_completions_topResultsByFrequency() {
+        let source = FrequencyCompletionSource()
+        source.loadData(bundle: testBundle)
+        let results = source.completions(context: "", prefix: "mag")
+        // "magnus" and "magis" should be among the top results for "mag"
+        let hasHighFreqWord = results.contains { $0 == "magnus" || $0 == "magis" || $0 == "magno" || $0 == "magna" }
+        XCTAssertTrue(hasHighFreqWord,
+                      "Top completions for 'mag' should include common Latin words, got: \(results)")
+    }
+
+    func testFrequency_completions_singleCharPrefix() {
+        let source = FrequencyCompletionSource()
+        source.loadData(bundle: testBundle)
+        let results = source.completions(context: "", prefix: "a")
+        XCTAssertFalse(results.isEmpty, "Should return completions for single-char prefix 'a'")
+    }
+
+    func testFrequency_completions_maxFiveResults() {
+        let source = FrequencyCompletionSource()
+        source.loadData(bundle: testBundle)
+        let results = source.completions(context: "", prefix: "a")
+        XCTAssertLessThanOrEqual(results.count, 5, "Should return at most 5 results")
+    }
+
+    // MARK: - NGramPredictionSource — With Real Data
+
+    func testNGram_loadData_succeeds() {
+        let source = NGramPredictionSource()
+        source.loadData(bundle: testBundle)
+        XCTAssertTrue(source.isLoaded, "Should successfully load ngrams.json")
+    }
+
+    func testNGram_nextWordPredictions_returnsResults() {
+        let source = NGramPredictionSource()
+        source.loadData(bundle: testBundle)
+        let results = source.nextWordPredictions(context: "in")
+        XCTAssertFalse(results.isEmpty,
+                       "Should return next-word predictions after 'in'")
+    }
+
+    func testNGram_nextWordPredictions_contextualResults() {
+        let source = NGramPredictionSource()
+        source.loadData(bundle: testBundle)
+        // After "et" (and), common continuations should be real Latin words
+        let results = source.nextWordPredictions(context: "et")
+        XCTAssertFalse(results.isEmpty,
+                       "Should return next-word predictions after 'et'")
+    }
+
+    // MARK: - PredictionEngine — With Loaded Data
+
+    func testEngine_completions_withLoadedData() {
+        let engine = PredictionEngine()
+        engine.load()
+
+        // Wait for data to load
+        let loadExpectation = XCTestExpectation(description: "Data loads")
+        engine.onDataLoaded = { loadExpectation.fulfill() }
+        wait(for: [loadExpectation], timeout: 5.0)
+
+        let results = engine.predict(context: "", currentWord: "mag")
+        XCTAssertFalse(results.isEmpty, "Should return completions with loaded data")
+    }
+
+    func testEngine_nextWord_withLoadedData() {
+        let engine = PredictionEngine()
+        engine.load()
+
+        let loadExpectation = XCTestExpectation(description: "Data loads")
+        engine.onDataLoaded = { loadExpectation.fulfill() }
+        wait(for: [loadExpectation], timeout: 5.0)
+
+        let results = engine.predict(context: "in", currentWord: "")
+        XCTAssertFalse(results.isEmpty, "Should return next-word predictions with loaded data")
     }
 }

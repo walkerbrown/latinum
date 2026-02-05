@@ -82,32 +82,21 @@ class PredictionEngine {
         }
     }
 
-    // MARK: - Async Prediction
+    // MARK: - Prediction
 
-    /// Generate predictions asynchronously on the inference queue.
-    /// Results are delivered on the main thread via the completion handler.
+    /// Generate predictions synchronously.
+    /// The underlying lookups (binary search, dictionary access) are fast enough
+    /// for the main thread — no need for async dispatch.
     ///
     /// - Parameters:
     ///   - context: Full text context before cursor
     ///   - currentWord: The word currently being typed (empty for next-word prediction)
-    ///   - completion: Called on main thread with prediction results (max 3)
-    func predictAsync(context: String, currentWord: String, completion: @escaping ([String]) -> Void) {
-        inferenceQueue.async { [weak self] in
-            guard let self = self else {
-                DispatchQueue.main.async { completion([]) }
-                return
-            }
-
-            let results: [String]
-            if currentWord.isEmpty {
-                results = self.mergedNextWordPredictions(context: context)
-            } else {
-                results = self.mergedCompletions(context: context, prefix: currentWord)
-            }
-
-            DispatchQueue.main.async {
-                completion(results)
-            }
+    /// - Returns: Up to 3 prediction results
+    func predict(context: String, currentWord: String) -> [String] {
+        if currentWord.isEmpty {
+            return mergedNextWordPredictions(context: context)
+        } else {
+            return mergedCompletions(context: context, prefix: currentWord)
         }
     }
 

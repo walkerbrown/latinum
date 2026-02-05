@@ -11,6 +11,7 @@
 		074F54D650854E83838750E3 /* LatinNormalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FFC46520EB5B322B65FBDA /* LatinNormalization.swift */; };
 		0CA85FE7985C6AC1EDF914E9 /* LatinumKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6913023984C0F15D5D438C87 /* LatinumKeyboard.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		1D74784B59A2958FB5DF6A09 /* PredictionSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC72B6218D11B463403569B7 /* PredictionSourceTests.swift */; };
+		26518A85566A448A338CFA0D /* word_frequencies.json in Resources */ = {isa = PBXBuildFile; fileRef = C604B8E3F5FBA131631352C0 /* word_frequencies.json */; };
 		295D4D8D73D85BB1BDFA1AE3 /* LatinNormalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FFC46520EB5B322B65FBDA /* LatinNormalization.swift */; };
 		32464E10B9878A80AEF5FBA7 /* ngrams.json in Resources */ = {isa = PBXBuildFile; fileRef = 9FEB7A42E9FB8BE879F7AAC7 /* ngrams.json */; };
 		3D50D8BA48A5D5ED9C7DD8D3 /* KeyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F4F9E1E952BAE48CC65646 /* KeyButton.swift */; };
@@ -28,6 +29,7 @@
 		D4F5692D9EDDA6026F41C2DC /* PredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7295172B8319F8DEAAF5C52 /* PredictionEngine.swift */; };
 		D90B8C6429E8850F6602FDA8 /* NGramPredictionSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864D73DE536B8D4B4EC80603 /* NGramPredictionSource.swift */; };
 		EA04A3CADAA3F469FF208B95 /* FrequencyCompletionSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C8E7EC0F4AF9A38FBE7DFF /* FrequencyCompletionSource.swift */; };
+		FB36A897B069AC2D79DA936E /* ngrams.json in Resources */ = {isa = PBXBuildFile; fileRef = 9FEB7A42E9FB8BE879F7AAC7 /* ngrams.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -173,6 +175,7 @@
 			buildConfigurationList = AF6AB18E29B8ABA6FBB755CD /* Build configuration list for PBXNativeTarget "LatinumTests" */;
 			buildPhases = (
 				BBD2AFA453F0FE632640EAA4 /* Sources */,
+				816ED5D3066A7808F45E0702 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -262,6 +265,15 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		816ED5D3066A7808F45E0702 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB36A897B069AC2D79DA936E /* ngrams.json in Resources */,
+				26518A85566A448A338CFA0D /* word_frequencies.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8CCA18AA34F5C71E23B94D18 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;

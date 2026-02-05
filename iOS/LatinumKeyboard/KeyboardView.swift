@@ -23,7 +23,7 @@ enum KeyboardMode {
 }
 
 /// Main keyboard view containing all keys and prediction bar
-class KeyboardView: UIView {
+class KeyboardView: UIInputView {
 
     // MARK: - Constants
 
@@ -130,8 +130,8 @@ class KeyboardView: UIView {
 
     // MARK: - Initialization
 
-    override init(frame: CGRect) {
-        super.init(frame: frame)
+    init() {
+        super.init(frame: .zero, inputViewStyle: .keyboard)
         setupView()
     }
 

@@ -20,8 +20,9 @@ class FrequencyCompletionSource: PredictionSource {
     // MARK: - Loading
 
     /// Load `word_frequencies.json` synchronously (called from the inference queue).
-    func loadData() {
-        guard let url = Bundle.main.url(forResource: "word_frequencies", withExtension: "json") else {
+    func loadData(bundle: Bundle = .main) {
+        guard let url = bundle.url(forResource: "word_frequencies", withExtension: "json") else {
+            // JSON resource not found in bundle
             return
         }
         do {
@@ -42,7 +43,6 @@ class FrequencyCompletionSource: PredictionSource {
                 isLoaded = true
             }
         } catch {
-            print("FrequencyCompletionSource: failed to load data – \(error)")
         }
     }
 

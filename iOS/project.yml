@@ -74,6 +74,10 @@ targets:
       - path: LatinumKeyboard/PredictionEngine.swift
       - path: LatinumKeyboard/FrequencyCompletionSource.swift
       - path: LatinumKeyboard/NGramPredictionSource.swift
+      - path: LatinumKeyboard/Resources/word_frequencies.json
+        buildPhase: resources
+      - path: LatinumKeyboard/Resources/ngrams.json
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.walkerbrown.latinum.tests
