@@ -76,6 +76,13 @@ class KeyboardView: UIView {
     private var langLabel: UILabel?
     private var lastSpaceTapTime: Date?
 
+    // Whether the globe key should be shown (needsInputModeSwitchKey)
+    // Future: When emoji keyboard API becomes available, repurpose globe slot for emoji access
+    private var showGlobeKey: Bool = true
+
+    // Current keyboard type (affects bottom row layout for email, URL, etc.)
+    private var currentKeyboardType: UIKeyboardType = .default
+
     // Long press handling for letters
     private var activeLongPressPopup: LongPressPopupView?
     private var longPressButton: KeyButton?
@@ -447,25 +454,35 @@ class KeyboardView: UIView {
         row.distribution = .fill
         row.spacing = keySpacing
 
-        // 123 button
+        // 123 button — wider when globe key is absent to fill the gap
+        // Future: When emoji keyboard API becomes available, repurpose globe slot for emoji access
+        let modeWidth: CGFloat = showGlobeKey ? 48 : 48 + keySpacing + 48
         let mode = KeyButton(key: "123")
         mode.setTitle("123", for: .normal)
         mode.titleLabel?.font = .systemFont(ofSize: 18, weight: .regular)
         mode.addTarget(self, action: #selector(modeTapped), for: .touchUpInside)
-        mode.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        mode.widthAnchor.constraint(equalToConstant: modeWidth).isActive = true
         modeButton = mode
         row.addArrangedSubview(mode)
 
-        // Globe button for input mode switching (required for App Store)
-        let globeKey = KeyButton(key: "globe")
-        globeKey.setImage(UIImage(systemName: "globe"), for: .normal)
-        globeKey.addTarget(self, action: #selector(globeTapped), for: .touchUpInside)
-        globeKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
-        row.addArrangedSubview(globeKey)
+        if showGlobeKey {
+            // Globe button for input mode switching
+            let globeKey = KeyButton(key: "globe")
+            globeKey.setImage(UIImage(systemName: "globe"), for: .normal)
+            globeKey.addTarget(self, action: #selector(globeTapped), for: .touchUpInside)
+            globeKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
+            row.addArrangedSubview(globeKey)
+        }
+
+        // Add keyboard-type-specific keys before space bar
+        addKeyboardTypeSpecificKeys(to: row)
 
         // Space bar with "Lingua Latina" text that fades
         let space = createSpaceButton()
         row.addArrangedSubview(space)
+
+        // Add keyboard-type-specific keys after space bar (like .com for URL)
+        addKeyboardTypeSpecificKeysAfterSpace(to: row)
 
         // Return - slightly wider
         let returnKey = KeyButton(key: "return")
@@ -476,6 +493,70 @@ class KeyboardView: UIView {
         row.addArrangedSubview(returnKey)
 
         return row
+    }
+
+    /// Add keyboard-type-specific keys before the space bar
+    private func addKeyboardTypeSpecificKeys(to row: UIStackView) {
+        switch currentKeyboardType {
+        case .emailAddress:
+            // @ key for email addresses (following system keyboard convention)
+            let atKey = KeyButton(key: "@")
+            atKey.setTitle("@", for: .normal)
+            atKey.titleLabel?.font = .systemFont(ofSize: 18)
+            atKey.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            atKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
+            row.addArrangedSubview(atKey)
+
+        case .URL, .webSearch:
+            // / key for URLs (following system keyboard convention)
+            let slashKey = KeyButton(key: "/")
+            slashKey.setTitle("/", for: .normal)
+            slashKey.titleLabel?.font = .systemFont(ofSize: 18)
+            slashKey.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            slashKey.widthAnchor.constraint(equalToConstant: 36).isActive = true
+            row.addArrangedSubview(slashKey)
+
+        default:
+            break
+        }
+    }
+
+    /// Add keyboard-type-specific keys after the space bar
+    private func addKeyboardTypeSpecificKeysAfterSpace(to row: UIStackView) {
+        switch currentKeyboardType {
+        case .emailAddress:
+            // . key for email domains
+            let dotKey = KeyButton(key: ".")
+            dotKey.setTitle(".", for: .normal)
+            dotKey.titleLabel?.font = .systemFont(ofSize: 18)
+            dotKey.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            dotKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
+            row.addArrangedSubview(dotKey)
+
+        case .URL, .webSearch:
+            // . key for URLs
+            let dotKey = KeyButton(key: ".")
+            dotKey.setTitle(".", for: .normal)
+            dotKey.titleLabel?.font = .systemFont(ofSize: 18)
+            dotKey.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            dotKey.widthAnchor.constraint(equalToConstant: 36).isActive = true
+            row.addArrangedSubview(dotKey)
+
+            // .com key for URLs (system keyboard convention)
+            let comKey = KeyButton(key: ".com")
+            comKey.setTitle(".com", for: .normal)
+            comKey.titleLabel?.font = .systemFont(ofSize: 14)
+            comKey.addTarget(self, action: #selector(comKeyTapped), for: .touchUpInside)
+            comKey.widthAnchor.constraint(equalToConstant: 52).isActive = true
+            row.addArrangedSubview(comKey)
+
+        default:
+            break
+        }
+    }
+
+    @objc private func comKeyTapped() {
+        delegate?.keyboardView(self, didTapSpecialKey: ".com")
     }
 
     private func createSpaceButton() -> UIButton {
@@ -652,21 +733,25 @@ class KeyboardView: UIView {
         row.distribution = .fill
         row.spacing = keySpacing
 
-        // ABC button
+        // ABC button — wider when globe key is absent to fill the gap
+        // Future: When emoji keyboard API becomes available, repurpose globe slot for emoji access
+        let modeWidth: CGFloat = showGlobeKey ? 48 : 48 + keySpacing + 48
         let mode = KeyButton(key: "ABC")
         mode.setTitle("ABC", for: .normal)
         mode.titleLabel?.font = .systemFont(ofSize: 16, weight: .regular)
         mode.addTarget(self, action: #selector(modeTapped), for: .touchUpInside)
-        mode.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        mode.widthAnchor.constraint(equalToConstant: modeWidth).isActive = true
         modeButton = mode
         row.addArrangedSubview(mode)
 
-        // Globe button for input mode switching (required for App Store)
-        let globeKey = KeyButton(key: "globe")
-        globeKey.setImage(UIImage(systemName: "globe"), for: .normal)
-        globeKey.addTarget(self, action: #selector(globeTapped), for: .touchUpInside)
-        globeKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
-        row.addArrangedSubview(globeKey)
+        if showGlobeKey {
+            // Globe button for input mode switching
+            let globeKey = KeyButton(key: "globe")
+            globeKey.setImage(UIImage(systemName: "globe"), for: .normal)
+            globeKey.addTarget(self, action: #selector(globeTapped), for: .touchUpInside)
+            globeKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
+            row.addArrangedSubview(globeKey)
+        }
 
         // Space bar (simpler version for number mode)
         let space = KeyButton(key: "space")
@@ -943,5 +1028,21 @@ class KeyboardView: UIView {
             let hasRight = predictionLabels[i + 1].text?.isEmpty == false
             separator.isHidden = !(hasLeft && hasRight)
         }
+    }
+
+    /// Update globe key visibility based on needsInputModeSwitchKey
+    /// When hidden, the globe key is removed and the mode button (123/ABC) widens to fill the gap
+    func updateGlobeKeyVisibility(_ visible: Bool) {
+        guard showGlobeKey != visible else { return }
+        showGlobeKey = visible
+        rebuildKeyboard()
+    }
+
+    /// Update keyboard type for specialized layouts (email, URL, etc.)
+    func updateKeyboardType(_ type: UIKeyboardType) {
+        guard currentKeyboardType != type else { return }
+        currentKeyboardType = type
+        // Rebuild keyboard to reflect new type (affects bottom row keys)
+        rebuildKeyboard()
     }
 }

@@ -29,6 +29,9 @@ class KeyboardViewController: UIInputViewController {
     /// Cached raw predictions (before capitalization)
     private var rawPredictions: [String] = []
 
+    /// Cached keyboard type to detect changes
+    private var lastKeyboardType: UIKeyboardType?
+
     // MARK: - Lifecycle
 
     override func loadView() {
@@ -44,9 +47,25 @@ class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        updateKeyboardConfiguration()
         updateAutoCapitalization()
         updatePredictions()
         applyPredictionCapitalization()
+    }
+
+    // MARK: - Keyboard Configuration
+
+    /// Update keyboard configuration based on system state
+    private func updateKeyboardConfiguration() {
+        // Update globe key visibility based on whether multiple keyboards are enabled
+        keyboardView.updateGlobeKeyVisibility(needsInputModeSwitchKey)
+
+        // Update keyboard type if changed
+        let currentType = textDocumentProxy.keyboardType ?? .default
+        if currentType != lastKeyboardType {
+            lastKeyboardType = currentType
+            keyboardView.updateKeyboardType(currentType)
+        }
     }
 
     // MARK: - Setup
@@ -59,6 +78,8 @@ class KeyboardViewController: UIInputViewController {
     // MARK: - Text Input
 
     override func textDidChange(_ textInput: UITextInput?) {
+        // Update keyboard configuration (type, globe visibility) when context changes
+        updateKeyboardConfiguration()
         // Update context when text changes externally
         updateCurrentWord()
         updatePredictions()
@@ -112,14 +133,52 @@ class KeyboardViewController: UIInputViewController {
         }
     }
 
-    /// Enable uppercase if at start of text or after sentence-ending punctuation
+    /// Enable uppercase based on autocapitalizationType and context
     private func updateAutoCapitalization() {
-        let context = textDocumentProxy.documentContextBeforeInput ?? ""
+        // Respect the text field's autocapitalization preference
+        let autocapType = textDocumentProxy.autocapitalizationType ?? .sentences
 
-        if context.isEmpty || context.hasSuffix(". ") {
+        switch autocapType {
+        case .none:
+            // Never auto-capitalize; leave shift state as-is unless user changed it
+            return
+
+        case .allCharacters:
+            // Always uppercase (but don't override caps lock)
             if shiftState == .lowercase {
                 shiftState = .uppercase
                 keyboardView.updateShiftState(shiftState)
+            }
+            return
+
+        case .words:
+            // Capitalize at start of text or after whitespace
+            let context = textDocumentProxy.documentContextBeforeInput ?? ""
+            if context.isEmpty || context.last?.isWhitespace == true {
+                if shiftState == .lowercase {
+                    shiftState = .uppercase
+                    keyboardView.updateShiftState(shiftState)
+                }
+            }
+
+        case .sentences:
+            // Capitalize at start of text, after sentence-ending punctuation, or new paragraph
+            let context = textDocumentProxy.documentContextBeforeInput ?? ""
+            if context.isEmpty || context.hasSuffix(". ") || context.hasSuffix("? ") || context.hasSuffix("! ") || context.hasSuffix("\n") {
+                if shiftState == .lowercase {
+                    shiftState = .uppercase
+                    keyboardView.updateShiftState(shiftState)
+                }
+            }
+
+        @unknown default:
+            // Fall back to sentence capitalization for future cases
+            let context = textDocumentProxy.documentContextBeforeInput ?? ""
+            if context.isEmpty || context.hasSuffix(". ") || context.hasSuffix("\n") {
+                if shiftState == .lowercase {
+                    shiftState = .uppercase
+                    keyboardView.updateShiftState(shiftState)
+                }
             }
         }
     }
@@ -213,6 +272,7 @@ class KeyboardViewController: UIInputViewController {
         }
 
         updatePredictions()
+        updateAutoCapitalization()
     }
 
     /// Handle double-tap space - replace space with ". " and uppercase
@@ -236,12 +296,15 @@ class KeyboardViewController: UIInputViewController {
         textDocumentProxy.insertText("\n")
         currentWord = ""
 
+        // Reset shift to lowercase before auto-cap decides (caps lock persists)
         if shiftState == .uppercase {
             shiftState = .lowercase
             keyboardView.updateShiftState(shiftState)
         }
 
         updatePredictions()
+        // Auto-cap will re-enable uppercase for new paragraph if appropriate
+        updateAutoCapitalization()
     }
 
     /// Toggle shift state
