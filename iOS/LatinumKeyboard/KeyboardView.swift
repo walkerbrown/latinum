@@ -806,6 +806,7 @@ class KeyboardView: UIView {
 
             longPressButton = button
             showLongPressPopup(for: button, options: options)
+            KeyboardFeedback.shared.playPopupOpen()
 
         case .changed:
             guard let popup = activeLongPressPopup else { return }
@@ -862,6 +863,10 @@ class KeyboardView: UIView {
             height: popupHeight
         )
 
+        popup.onSelectionChanged = {
+            KeyboardFeedback.shared.playSelectionChanged()
+        }
+
         addSubview(popup)
         activeLongPressPopup = popup
     }
@@ -908,6 +913,7 @@ class KeyboardView: UIView {
 
     private func performBackspaceRepeat() {
         backspaceDeleteCount += 1
+        KeyboardFeedback.shared.playDelete()
 
         if backspaceDeleteCount > charDeleteThreshold {
             // Switch to word-by-word deletion
@@ -1045,4 +1051,12 @@ class KeyboardView: UIView {
         // Rebuild keyboard to reflect new type (affects bottom row keys)
         rebuildKeyboard()
     }
+}
+
+// MARK: - Audio Feedback
+
+/// Enables the system keyboard click sound via UIDevice.current.playInputClick().
+/// The sound automatically respects Settings > Sounds & Haptics > Keyboard Clicks.
+extension KeyboardView: UIInputViewAudioFeedback {
+    var enableInputClicksWhenVisible: Bool { true }
 }

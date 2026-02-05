@@ -52,6 +52,7 @@ class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        KeyboardFeedback.shared.prepare()
         updateKeyboardConfiguration()
         updateAutoCapitalization()
         schedulePredictionUpdate()

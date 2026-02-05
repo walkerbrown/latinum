@@ -7,13 +7,18 @@ class LongPressPopupView: UIView {
 
     var onSelect: ((String) -> Void)?
     var onDismiss: (() -> Void)?
+    var onSelectionChanged: (() -> Void)?
 
     private let options: [String]
     private var optionViews: [UIView] = []
     private var optionLabels: [UILabel] = []
     private var selectedIndex: Int? {
         didSet {
+            guard selectedIndex != oldValue else { return }
             updateHighlight()
+            if selectedIndex != nil {
+                onSelectionChanged?()
+            }
         }
     }
 
