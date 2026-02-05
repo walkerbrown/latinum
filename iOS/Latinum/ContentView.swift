@@ -20,8 +20,8 @@ struct ContentView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
-                        Image(systemName: "keyboard")
-                            .foregroundColor(.blue.opacity(0.7))
+                        Image(systemName: "building.columns")
+                            .foregroundColor(.primary.opacity(0.7))
                             .font(.subheadline)
                     }
                 }
@@ -43,6 +43,11 @@ struct ContentView: View {
                         .tag(1)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                .onChange(of: selectedTab) { _, newTab in
+                    if newTab == 0 {
+                        isTextFieldFocused = false
+                    }
+                }
 
                 // Spacer for tab bar height
                 Spacer().frame(height: 56)
@@ -101,6 +106,13 @@ struct TabButton: View {
 
 /// Setup instructions content (below divider)
 struct SetupContentView: View {
+    @State private var keyboardInstalled = false
+    @State private var soundEnabled = true
+    @State private var hapticEnabled = true
+    @State private var isVisible = false
+
+    private let pollTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -109,16 +121,16 @@ struct SetupContentView: View {
                         .font(.headline)
                         .padding(.top, 24)
 
-                    SetupStepView(
-                        number: 1,
-                        title: "Open Settings",
-                        description: "Go to Settings → General → Keyboard → Keyboards"
-                    )
+                    InstallKeyboardStepView(number: 1)
+
+                    // Keyboard installed status
+                    KeyboardInstalledStatusView(isInstalled: keyboardInstalled)
+                        .frame(maxWidth: .infinity)
 
                     SetupStepView(
                         number: 2,
-                        title: "Add Keyboard",
-                        description: "Tap 'Add New Keyboard' and select 'Latinum'"
+                        title: "Manage Keyboards",
+                        description: "Settings → General → Keyboard → Keyboards"
                     )
 
                     SetupStepView(
@@ -126,6 +138,22 @@ struct SetupContentView: View {
                         title: "Start Typing",
                         description: "Switch to the Latinum keyboard using the globe key"
                     )
+
+                    Divider()
+                        .padding(.vertical, 16)
+
+                    // Feedback settings section (only shown if keyboard installed)
+                    if keyboardInstalled {
+                        Text("Feedback Settings")
+                            .font(.headline)
+                            .padding(.bottom, 8)
+
+                        FeedbackSettingsToggleView(
+                            soundEnabled: $soundEnabled,
+                            hapticEnabled: $hapticEnabled
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
                 }
                 .padding(.horizontal, 24)
 
@@ -136,12 +164,14 @@ struct SetupContentView: View {
 
             // Privacy notice
             VStack(spacing: 8) {
-                Image(systemName: "lock.shield")
-                    .font(.title2)
-                    .foregroundColor(.green)
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.shield")
+                        .font(.title2)
+                        .foregroundColor(.green)
 
-                Text("Privacy Guaranteed")
-                    .font(.headline)
+                    Text("Private and Secure")
+                        .font(.headline)
+                }
 
                 Text("Latinum works offline. No data is collected, transmitted, or stored. Your keystrokes never leave your device.")
                     .font(.caption)
@@ -151,6 +181,28 @@ struct SetupContentView: View {
             }
             .padding(.bottom, 24)
         }
+        .onAppear {
+            isVisible = true
+            readCurrentSettings()
+        }
+        .onDisappear {
+            isVisible = false
+        }
+        .onReceive(pollTimer) { _ in
+            if isVisible {
+                readCurrentSettings()
+            }
+        }
+    }
+
+    private func readCurrentSettings() {
+        // Check if keyboard is installed
+        let keyboards = UserDefaults.standard.object(forKey: "AppleKeyboards") as? [String] ?? []
+        keyboardInstalled = keyboards.contains { $0.contains("org.walkerbrown.latinum") }
+
+        // Read settings directly from standard defaults (Settings.bundle writes here)
+        soundEnabled = UserDefaults.standard.object(forKey: "sound_feedback_enabled") as? Bool ?? true
+        hapticEnabled = UserDefaults.standard.object(forKey: "haptic_feedback_enabled") as? Bool ?? true
     }
 }
 
@@ -205,14 +257,14 @@ struct SetupStepView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            // Step number
+            // Step number (gray to not imply clickability)
             ZStack {
                 Circle()
-                    .fill(Color.blue)
+                    .fill(Color.secondary.opacity(0.3))
                     .frame(width: 28, height: 28)
                 Text("\(number)")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(.secondary)
             }
 
             // Content
@@ -224,6 +276,121 @@ struct SetupStepView: View {
                     .foregroundColor(.secondary)
             }
         }
+    }
+}
+
+/// Step 1: Install keyboard with hyperlinked App Settings
+struct InstallKeyboardStepView: View {
+    let number: Int
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 16) {
+            // Step number (gray to not imply clickability)
+            ZStack {
+                Circle()
+                    .fill(Color.secondary.opacity(0.3))
+                    .frame(width: 28, height: 28)
+                Text("\(number)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.secondary)
+            }
+
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Install Keyboard")
+                    .font(.system(size: 16, weight: .semibold))
+
+                (Text("Enable 'Latinum' in ")
+                    .foregroundColor(.secondary)
+                +
+                Text("App Settings")
+                    .foregroundColor(.blue)
+                +
+                Text(" → Keyboards")
+                    .foregroundColor(.secondary))
+                    .font(.system(size: 14))
+            }
+            .onTapGesture {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+        }
+    }
+}
+
+/// Keyboard installation status indicator
+struct KeyboardInstalledStatusView: View {
+    let isInstalled: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: isInstalled ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 16))
+                .foregroundColor(isInstalled ? .green : .secondary)
+
+            Text(isInstalled ? "Keyboard installed" : "Keyboard not yet installed")
+                .font(.system(size: 14))
+                .foregroundColor(isInstalled ? .primary : .secondary)
+        }
+    }
+}
+
+/// Feedback settings toggles with Apple-style toggle switches
+struct FeedbackSettingsToggleView: View {
+    @Binding var soundEnabled: Bool
+    @Binding var hapticEnabled: Bool
+
+    private let sharedDefaults = UserDefaults(suiteName: "group.org.walkerbrown.latinum.shared")
+
+    var body: some View {
+        VStack(spacing: 12) {
+            // Sound toggle row
+            HStack {
+                Image(systemName: soundEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(soundEnabled ? .green : .secondary)
+                    .frame(width: 28)
+
+                Text("Sound")
+                    .font(.system(size: 16))
+
+                Spacer()
+
+                Toggle("", isOn: $soundEnabled)
+                    .labelsHidden()
+                    .onChange(of: soundEnabled) { _, newValue in
+                        saveSetting(key: "sound_feedback_enabled", value: newValue)
+                    }
+            }
+
+            // Haptics toggle row
+            HStack {
+                Image(systemName: hapticEnabled ? "hand.tap.fill" : "hand.raised.slash.fill")
+                    .font(.system(size: 18))
+                    .foregroundColor(hapticEnabled ? .green : .secondary)
+                    .frame(width: 28)
+
+                Text("Haptics")
+                    .font(.system(size: 16))
+
+                Spacer()
+
+                Toggle("", isOn: $hapticEnabled)
+                    .labelsHidden()
+                    .onChange(of: hapticEnabled) { _, newValue in
+                        saveSetting(key: "haptic_feedback_enabled", value: newValue)
+                    }
+            }
+        }
+        .padding(.leading, 16)
+        .padding(.trailing, 16)
+    }
+
+    private func saveSetting(key: String, value: Bool) {
+        // Write to both standard defaults and shared App Group
+        UserDefaults.standard.set(value, forKey: key)
+        sharedDefaults?.set(value, forKey: key)
     }
 }
 

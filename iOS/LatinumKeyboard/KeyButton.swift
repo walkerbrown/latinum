@@ -63,14 +63,11 @@ class KeyButton: UIButton {
         }
     }
 
-    // MARK: - Touch Feedback
+    // MARK: - Highlight State
 
     override var isHighlighted: Bool {
         didSet {
             if isHighlighted {
-                if !oldValue {
-                    KeyboardFeedback.shared.playKeyDown()
-                }
                 backgroundColor = highlightedBackgroundColor
                 transform = CGAffineTransform(scaleX: 0.98, y: 0.98)
             } else {

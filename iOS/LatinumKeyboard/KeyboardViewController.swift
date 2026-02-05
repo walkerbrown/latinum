@@ -11,30 +11,18 @@ class KeyboardViewController: UIInputViewController {
 
     // MARK: - Properties
 
-    /// The main keyboard view
     private var keyboardView: KeyboardView!
-
-    /// Prediction engine for generating suggestions
     private var predictionEngine: PredictionEngine!
-
-    /// Current shift state
+    private let haptics = KeyboardHaptics()
+    private let audio = KeyboardAudio()
     private var shiftState: ShiftState = .lowercase
-
-    /// The text currently being typed (for prediction context)
     private var currentWord: String = ""
-
-    /// Cached raw predictions (before capitalization)
     private var rawPredictions: [String] = []
-
-    /// Cached keyboard type to detect changes
     private var lastKeyboardType: UIKeyboardType?
-
-    /// Whether text is currently selected (for word-highlight prediction)
     private var hasSelection: Bool = false
 
-    /// Timestamp of last self-triggered text modification.
-    /// Used to ignore textDidChange callbacks from our own insertions/deletions,
-    /// since the proxy may report stale context in those callbacks.
+    /// Timestamp of last self-triggered text modification, used to
+    /// skip textDidChange callbacks caused by our own insertions.
     private var lastSelfModifiedTime: CFAbsoluteTime = 0
 
 
@@ -53,30 +41,29 @@ class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        KeyboardFeedback.shared.prepare()
+        haptics.prepare()
+        audio.prepare()
+        haptics.isEnabled = KeyboardSettings.hapticEnabled
+        audio.isEnabled = KeyboardSettings.soundEnabled
+        keyboardView.haptics = haptics
+        keyboardView.audio = audio
         updateAutoCapitalization()
         performPredictionUpdate()
-        applyPredictionCapitalization()
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // Defer needsInputModeSwitchKey until host connection is established.
         // updateKeyboardConfiguration may trigger rebuildKeyboard (e.g., globe
-        // key visibility change), which clears prediction labels.  Re-apply
-        // predictions afterward so the bar isn't blank on first appearance.
+        // key visibility change), which clears prediction labels.
         updateKeyboardConfiguration()
         applyPredictionCapitalization()
     }
 
     // MARK: - Keyboard Configuration
 
-    /// Update keyboard configuration based on system state
     private func updateKeyboardConfiguration() {
-        // Update globe key visibility based on whether multiple keyboards are enabled
         keyboardView.updateGlobeKeyVisibility(needsInputModeSwitchKey)
 
-        // Update keyboard type if changed
         let currentType = textDocumentProxy.keyboardType ?? .default
         if currentType != lastKeyboardType {
             lastKeyboardType = currentType
@@ -97,22 +84,13 @@ class KeyboardViewController: UIInputViewController {
     // MARK: - Text Input
 
     override func textDidChange(_ textInput: UITextInput?) {
-        // Ignore callbacks triggered by our own text modifications.
-        // The proxy often reports stale context in these callbacks, and we already
-        // set currentWord and fired predictions in the originating method.
-        // Use a 50ms window to catch all callbacks from a single modification
-        // (textDidChange can fire multiple times per insertText call).
-        //
-        // IMPORTANT: updateKeyboardConfiguration() must run AFTER this guard
-        // because it can trigger rebuildKeyboard() (e.g., globe key visibility
-        // change), which clears the prediction labels. If it ran before the
-        // guard, predictions set by insertCharacter() would be wiped and the
-        // early return would prevent them from being re-applied.
+        // Skip callbacks from our own text modifications (50ms window).
+        // Must run BEFORE updateKeyboardConfiguration(), which can trigger
+        // rebuildKeyboard() and clear prediction labels.
         if CFAbsoluteTimeGetCurrent() - lastSelfModifiedTime < 0.05 {
             return
         }
 
-        // External text change (cursor move, paste, autocorrect, etc.)
         updateKeyboardConfiguration()
 
         if let selected = textDocumentProxy.selectedText,
@@ -128,7 +106,6 @@ class KeyboardViewController: UIInputViewController {
         performPredictionUpdate()
     }
 
-    /// Get the current word being typed from the text document context
     private func updateCurrentWord() {
         guard let context = textDocumentProxy.documentContextBeforeInput else {
             currentWord = ""
@@ -149,7 +126,6 @@ class KeyboardViewController: UIInputViewController {
 
     // MARK: - Prediction
 
-    /// Generate and display predictions synchronously.
     private func performPredictionUpdate() {
         let context = textDocumentProxy.documentContextBeforeInput ?? ""
         let word = currentWord
@@ -158,13 +134,11 @@ class KeyboardViewController: UIInputViewController {
         applyPredictionCapitalization()
     }
 
-    /// Re-apply capitalization to cached predictions (for shift state changes)
     private func applyPredictionCapitalization() {
         let capitalizedPredictions = rawPredictions.map { applyCapitalization($0) }
         keyboardView.updatePredictions(capitalizedPredictions)
     }
 
-    /// Apply capitalization to a word based on current shift state
     private func applyCapitalization(_ text: String) -> String {
         switch shiftState {
         case .lowercase:
@@ -176,9 +150,7 @@ class KeyboardViewController: UIInputViewController {
         }
     }
 
-    /// Enable uppercase based on autocapitalizationType and context
     private func updateAutoCapitalization() {
-        // Respect the text field's autocapitalization preference
         let autocapType = textDocumentProxy.autocapitalizationType ?? .sentences
 
         switch autocapType {
@@ -228,9 +200,7 @@ class KeyboardViewController: UIInputViewController {
 
     // MARK: - Key Handling
 
-    /// Insert a character from the keyboard
     func insertCharacter(_ char: String) {
-        // Handle shift state
         let charToInsert: String
         switch shiftState {
         case .lowercase:
@@ -242,7 +212,6 @@ class KeyboardViewController: UIInputViewController {
         lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
         textDocumentProxy.insertText(charToInsert)
 
-        // Return to lowercase after single uppercase
         if shiftState == .uppercase {
             shiftState = .lowercase
             keyboardView.updateShiftState(shiftState)
@@ -252,7 +221,6 @@ class KeyboardViewController: UIInputViewController {
         performPredictionUpdate()
     }
 
-    /// Insert a special character (macron, ligature)
     func insertSpecialCharacter(_ char: String) {
         lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
         textDocumentProxy.insertText(char)
@@ -266,8 +234,14 @@ class KeyboardViewController: UIInputViewController {
         performPredictionUpdate()
     }
 
-    /// Handle backspace
-    func deleteBackward() {
+    /// Delete one character backward. Returns true if content was deleted.
+    @discardableResult
+    func deleteBackward() -> Bool {
+        // Check if there's content to delete
+        let hasContent = textDocumentProxy.documentContextBeforeInput?.isEmpty == false
+
+        guard hasContent else { return false }
+
         lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
         textDocumentProxy.deleteBackward()
 
@@ -279,15 +253,16 @@ class KeyboardViewController: UIInputViewController {
 
         performPredictionUpdate()
         updateAutoCapitalization()
+        return true
     }
 
-    /// Delete the previous word (for hold-backspace acceleration)
-    func deleteWord() {
+    /// Delete one word backward. Returns true if content was deleted.
+    @discardableResult
+    func deleteWord() -> Bool {
         guard let context = textDocumentProxy.documentContextBeforeInput, !context.isEmpty else {
-            return
+            return false
         }
 
-        // Find the start of the current/previous word
         var charsToDelete = 0
         var foundWordChar = false
 
@@ -311,9 +286,9 @@ class KeyboardViewController: UIInputViewController {
         currentWord = ""
         performPredictionUpdate()
         updateAutoCapitalization()
+        return true
     }
 
-    /// Handle space
     func insertSpace() {
         lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
         textDocumentProxy.insertText(" ")
@@ -328,7 +303,6 @@ class KeyboardViewController: UIInputViewController {
         updateAutoCapitalization()
     }
 
-    /// Handle double-tap space - replace space with ". " and uppercase
     func handleDoubleTapSpace() {
         lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
         textDocumentProxy.deleteBackward()
@@ -341,7 +315,6 @@ class KeyboardViewController: UIInputViewController {
         performPredictionUpdate()
     }
 
-    /// Handle return key
     func insertReturn() {
         lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
         textDocumentProxy.insertText("\n")
@@ -356,7 +329,6 @@ class KeyboardViewController: UIInputViewController {
         updateAutoCapitalization()
     }
 
-    /// Toggle shift state
     func toggleShift() {
         switch shiftState {
         case .lowercase:
@@ -370,14 +342,12 @@ class KeyboardViewController: UIInputViewController {
         applyPredictionCapitalization()
     }
 
-    /// Enable caps lock (double-tap shift)
     func enableCapsLock() {
         shiftState = .capsLock
         keyboardView.updateShiftState(shiftState)
         applyPredictionCapitalization()
     }
 
-    /// Apply a prediction suggestion
     func applyPrediction(_ prediction: String) {
         lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
 
@@ -395,6 +365,10 @@ class KeyboardViewController: UIInputViewController {
         textDocumentProxy.insertText(prediction)
         textDocumentProxy.insertText(" ")
 
+        // Record the space insertion so a subsequent space tap triggers
+        // double-tap behavior (replacing " " with ". ").
+        keyboardView.recordSpaceTap()
+
         currentWord = ""
 
         if shiftState == .uppercase {
@@ -405,7 +379,6 @@ class KeyboardViewController: UIInputViewController {
         performPredictionUpdate()
     }
 
-    /// Advance to next input mode (globe key)
     func advanceInputMode() {
         advanceToNextInputMode()
     }
@@ -422,11 +395,13 @@ extension KeyboardViewController: KeyboardViewDelegate {
         insertSpecialCharacter(key)
     }
 
-    func keyboardViewDidTapBackspace(_ view: KeyboardView) {
+    @discardableResult
+    func keyboardViewDidTapBackspace(_ view: KeyboardView) -> Bool {
         deleteBackward()
     }
 
-    func keyboardViewDidDeleteWord(_ view: KeyboardView) {
+    @discardableResult
+    func keyboardViewDidDeleteWord(_ view: KeyboardView) -> Bool {
         deleteWord()
     }
 

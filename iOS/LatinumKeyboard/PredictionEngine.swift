@@ -19,57 +19,44 @@ protocol PredictionSource: AnyObject {
 
 /// Engine for generating Latin word predictions.
 ///
-/// Coordinates one or more `PredictionSource` instances and manages:
-/// - Async inference on a dedicated serial queue
-/// - Merging and deduplicating results across sources
-/// - Macron/diacritic preservation
+/// Coordinates one or more `PredictionSource` instances, merging and
+/// deduplicating results across sources while preserving macrons/diacritics.
 class PredictionEngine {
 
     // MARK: - Properties
 
-    /// Registered prediction sources, queried in order of priority
     private var sources: [PredictionSource] = []
 
-    /// Dedicated serial queue for all inference work (keeps main thread free)
+    /// Serial queue for loading JSON data files off the main thread.
     private let inferenceQueue = DispatchQueue(label: "org.walkerbrown.latinum.prediction", qos: .userInitiated)
 
-    /// Callback invoked on main thread when data finishes loading
     var onDataLoaded: (() -> Void)?
 
-    /// Whether the primary data sources have loaded
     var isDataLoaded: Bool {
         return frequencySource.isLoaded || ngramSource.isLoaded
     }
 
-    /// Frequency-based word completion source
     private let frequencySource = FrequencyCompletionSource()
-
-    /// N-gram next-word prediction source
     private let ngramSource = NGramPredictionSource()
-
-    /// Hardcoded fallback source (always available)
     private let fallbackSource = FallbackPredictionSource()
 
     // MARK: - Initialization
 
     init() {
-        // Source chain: frequency for completions, n-gram for next-word, fallback last.
         sources = [frequencySource, ngramSource, fallbackSource]
     }
 
     // MARK: - Source Management
 
-    /// Insert a prediction source at the given priority index.
-    /// Lower index = higher priority. Sources are queried in order.
+    /// Insert a prediction source before the fallback (or at a specific index).
     func addSource(_ source: PredictionSource, at index: Int? = nil) {
-        let insertIndex = index ?? max(sources.count - 1, 0) // before fallback by default
+        let insertIndex = index ?? max(sources.count - 1, 0)
         sources.insert(source, at: min(insertIndex, sources.count))
     }
 
     // MARK: - Data Loading
 
-    /// Load JSON data files asynchronously to avoid blocking keyboard launch.
-    /// Fallback predictions are used until the data is ready.
+    /// Load JSON data files asynchronously. Fallback predictions are used until ready.
     func load() {
         inferenceQueue.async { [weak self] in
             guard let self = self else { return }
@@ -84,14 +71,7 @@ class PredictionEngine {
 
     // MARK: - Prediction
 
-    /// Generate predictions synchronously.
-    /// The underlying lookups (binary search, dictionary access) are fast enough
-    /// for the main thread — no need for async dispatch.
-    ///
-    /// - Parameters:
-    ///   - context: Full text context before cursor
-    ///   - currentWord: The word currently being typed (empty for next-word prediction)
-    /// - Returns: Up to 3 prediction results
+    /// Generate up to 3 predictions synchronously (lookups are fast enough for main thread).
     func predict(context: String, currentWord: String) -> [String] {
         if currentWord.isEmpty {
             return mergedNextWordPredictions(context: context)
@@ -102,7 +82,6 @@ class PredictionEngine {
 
     // MARK: - Source Merging
 
-    /// Merge completions from all sources, preserving diacritics and deduplicating.
     private func mergedCompletions(context: String, prefix: String) -> [String] {
         let normalizedPrefix = LatinNormalization.stripMacrons(prefix)
         var seen = Set<String>()
@@ -128,7 +107,6 @@ class PredictionEngine {
         return Array(merged.prefix(3))
     }
 
-    /// Merge next-word predictions from all sources, deduplicating.
     private func mergedNextWordPredictions(context: String) -> [String] {
         var seen = Set<String>()
         var merged: [String] = []

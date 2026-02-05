@@ -4,8 +4,10 @@ import UIKit
 protocol KeyboardViewDelegate: AnyObject {
     func keyboardView(_ view: KeyboardView, didTapKey key: String)
     func keyboardView(_ view: KeyboardView, didTapSpecialKey key: String)
-    func keyboardViewDidTapBackspace(_ view: KeyboardView)
-    func keyboardViewDidDeleteWord(_ view: KeyboardView)
+    /// Returns true if a character was deleted.
+    @discardableResult func keyboardViewDidTapBackspace(_ view: KeyboardView) -> Bool
+    /// Returns true if a word was deleted.
+    @discardableResult func keyboardViewDidDeleteWord(_ view: KeyboardView) -> Bool
     func keyboardViewDidTapSpace(_ view: KeyboardView)
     func keyboardViewDidDoubleTapSpace(_ view: KeyboardView)
     func keyboardViewDidTapReturn(_ view: KeyboardView)
@@ -61,6 +63,8 @@ class KeyboardView: UIInputView {
     // MARK: - Properties
 
     weak var delegate: KeyboardViewDelegate?
+    var haptics: KeyboardHaptics?
+    var audio: KeyboardAudio?
 
     private var shiftState: ShiftState = .lowercase
     private var keyboardMode: KeyboardMode = .letters
@@ -70,54 +74,37 @@ class KeyboardView: UIInputView {
     private var symbolToggleButton: KeyButton?
     private var lastShiftTapTime: Date?
 
-    // Space bar animation and double-tap
     private var spaceButton: KeyButton?
     private var spaceLabel: UILabel?
     private var langLabel: UILabel?
     private var lastSpaceTapTime: Date?
 
-    // Whether the globe key should be shown (needsInputModeSwitchKey)
-    // Future: When emoji keyboard API becomes available, repurpose globe slot for emoji access
     private var showGlobeKey: Bool = true
-
-    // Current keyboard type (affects bottom row layout for email, URL, etc.)
     private var currentKeyboardType: UIKeyboardType = .default
-
-    // Long press handling for letters
     private var activeLongPressPopup: LongPressPopupView?
     private var longPressButton: KeyButton?
 
-    // Backspace repeat handling
     private var backspaceTimer: Timer?
     private var backspaceDeleteCount: Int = 0
-    private let charDeleteThreshold: Int = 5  // Switch to word deletion after this many chars
+    private let charDeleteThreshold: Int = 5
+    private let backspaceRepeatInterval: TimeInterval = 0.12
 
-    // UI Components
     private let keyboardStack = UIStackView()
-
-    // Prediction bar components (integrated into keyboardStack)
     private var predictionLabels: [UILabel] = []
     private var predictionSeparators: [UIView] = []
-
-    // Flexible spacers between rows
     private var rowSpacers: [UIView] = []
     private var predictionSpacer: UIView?
 
     // MARK: - Layout Constants
 
-    // Keyboard geometry
     private let keySpacing: CGFloat = 6
     private let wideKeyWidth: CGFloat = 50
     private let row3ExtraSpacing: CGFloat = 14
-
-    // Vertical layout (hand-tuned to match system keyboards)
     private let predictionRowHeight: CGFloat = 28
     private let predictionContentHeight: CGFloat = 25
     private let topEdgePadding: CGFloat = 9
     private let bottomEdgePadding: CGFloat = 4
     private let minSpacerHeight: CGFloat = 10
-
-    // Orientation tracking
     private var lastIsLandscape: Bool?
 
     private var isLandscape: Bool {
@@ -151,7 +138,6 @@ class KeyboardView: UIInputView {
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        // Rebuild keyboard only when orientation actually changes
         if lastIsLandscape != isLandscape {
             lastIsLandscape = isLandscape
             rebuildKeyboard()
@@ -181,7 +167,6 @@ class KeyboardView: UIInputView {
     }
 
     private func rebuildKeyboard() {
-        // Clear existing views
         for view in keyboardStack.arrangedSubviews {
             keyboardStack.removeArrangedSubview(view)
             view.removeFromSuperview()
@@ -198,12 +183,10 @@ class KeyboardView: UIInputView {
         rowSpacers.removeAll()
         predictionSpacer = nil
 
-        // Build prediction row (shared across all keyboard modes)
         let predictionRow = createPredictionRow()
         predictionRow.heightAnchor.constraint(equalToConstant: predictionRowHeight).isActive = true
         keyboardStack.addArrangedSubview(predictionRow)
 
-        // Add spacer below prediction row (will be 2x height of other spacers)
         let belowPredictionSpacer = createSpacer()
         keyboardStack.addArrangedSubview(belowPredictionSpacer)
         predictionSpacer = belowPredictionSpacer
@@ -217,12 +200,10 @@ class KeyboardView: UIInputView {
             buildSymbolKeyboard()
         }
 
-        // Constrain all regular spacers to equal height
         if let firstSpacer = rowSpacers.first {
             for spacer in rowSpacers.dropFirst() {
                 spacer.heightAnchor.constraint(equalTo: firstSpacer.heightAnchor).isActive = true
             }
-            // Prediction spacer is 2x the height of regular spacers
             predictionSpacer?.heightAnchor.constraint(equalTo: firstSpacer.heightAnchor, multiplier: 2).isActive = true
         }
     }
@@ -231,7 +212,6 @@ class KeyboardView: UIInputView {
 
     private func createPredictionRow() -> UIView {
         let container = UIView()
-        // Near-transparent background required for hit testing on transparent views
         container.backgroundColor = UIColor.clear.withAlphaComponent(0.01)
 
         let stackView = UIStackView()
@@ -248,7 +228,6 @@ class KeyboardView: UIInputView {
             stackView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
         ])
 
-        // Create three tappable areas with centered labels
         for i in 0..<3 {
             let tapContainer = UIView()
             tapContainer.tag = i
@@ -270,7 +249,6 @@ class KeyboardView: UIInputView {
             predictionLabels.append(label)
         }
 
-        // Add vertical separators between predictions
         for i in 0..<2 {
             let separator = UIView()
             separator.translatesAutoresizingMaskIntoConstraints = false
@@ -299,6 +277,8 @@ class KeyboardView: UIInputView {
               index < predictionLabels.count,
               let text = predictionLabels[index].text,
               !text.isEmpty else { return }
+        haptics?.playHaptic()
+        audio?.playClickSound()
         delegate?.keyboardView(self, didSelectPrediction: text)
     }
 
@@ -325,13 +305,11 @@ class KeyboardView: UIInputView {
 
         updateShiftState(shiftState)
 
-        // Temporarily highlight, as with system keyboards
         self.spaceButton?.backgroundColor = UIColor { traits in
             traits.userInterfaceStyle == .dark
             ? UIColor(white: 0.35, alpha: 1.0)
             : UIColor(white: 1.0, alpha: 1.0)
         }
-        // Trigger space bar animation after 1 second
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             self?.animateSpaceBar()
         }
@@ -346,6 +324,7 @@ class KeyboardView: UIInputView {
         for key in keys {
             let button = KeyButton(key: key)
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+            addFeedback(to: button)
 
             if longPressKeys.keys.contains(key.lowercased()) {
                 setupLongPress(for: button)
@@ -380,6 +359,7 @@ class KeyboardView: UIInputView {
         for key in keys {
             let button = KeyButton(key: key)
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+            addFeedback(to: button)
 
             if longPressKeys.keys.contains(key.lowercased()) {
                 setupLongPress(for: button)
@@ -404,20 +384,18 @@ class KeyboardView: UIInputView {
         row.distribution = .fill
         row.spacing = keySpacing
 
-        // Shift button
         let shift = KeyButton(key: "shift")
         shift.setImage(UIImage(systemName: "shift"), for: .normal)
         shift.addTarget(self, action: #selector(shiftTapped), for: .touchUpInside)
+        addFeedback(to: shift)
         shift.widthAnchor.constraint(equalToConstant: wideKeyWidth).isActive = true
         shiftButton = shift
         row.addArrangedSubview(shift)
 
-        // Extra spacer between shift and z
         let leftSpacer = UIView()
         leftSpacer.widthAnchor.constraint(equalToConstant: row3ExtraSpacing - keySpacing).isActive = true
         row.addArrangedSubview(leftSpacer)
 
-        // Letter keys - uniform width
         let letterStack = UIStackView()
         letterStack.axis = .horizontal
         letterStack.distribution = .fillEqually
@@ -426,21 +404,21 @@ class KeyboardView: UIInputView {
         for key in letterRow3 {
             let button = KeyButton(key: key)
             button.addTarget(self, action: #selector(keyTapped(_:)), for: .touchUpInside)
+            addFeedback(to: button)
             keyButtons.append(button)
             letterStack.addArrangedSubview(button)
         }
         row.addArrangedSubview(letterStack)
 
-        // Extra spacer between m and backspace
         let rightSpacer = UIView()
         rightSpacer.widthAnchor.constraint(equalToConstant: row3ExtraSpacing - keySpacing).isActive = true
         row.addArrangedSubview(rightSpacer)
 
-        // Backspace button with long press for repeat delete
         let backspace = KeyButton(key: "backspace")
         let backspaceConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
         backspace.setImage(UIImage(systemName: "delete.left", withConfiguration: backspaceConfig), for: .normal)
         backspace.addTarget(self, action: #selector(backspaceTapped), for: .touchUpInside)
+        addFeedback(to: backspace)
         setupBackspaceLongPress(for: backspace)
         backspace.widthAnchor.constraint(equalToConstant: wideKeyWidth).isActive = true
         row.addArrangedSubview(backspace)
@@ -454,65 +432,61 @@ class KeyboardView: UIInputView {
         row.distribution = .fill
         row.spacing = keySpacing
 
-        // 123 button — wider when globe key is absent to fill the gap
-        // Future: When emoji keyboard API becomes available, repurpose globe slot for emoji access
         let modeWidth: CGFloat = showGlobeKey ? 48 : 48 + keySpacing + 48
         let mode = KeyButton(key: "123")
         mode.setTitle("123", for: .normal)
         mode.titleLabel?.font = .systemFont(ofSize: 18, weight: .regular)
         mode.addTarget(self, action: #selector(modeTapped), for: .touchUpInside)
+        addFeedback(to: mode)
         mode.widthAnchor.constraint(equalToConstant: modeWidth).isActive = true
         modeButton = mode
         row.addArrangedSubview(mode)
 
         if showGlobeKey {
-            // Globe button for input mode switching
             let globeKey = KeyButton(key: "globe")
             globeKey.setImage(UIImage(systemName: "globe"), for: .normal)
             globeKey.addTarget(self, action: #selector(globeTapped), for: .touchUpInside)
+            addFeedback(to: globeKey)
             globeKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
             row.addArrangedSubview(globeKey)
         }
 
-        // Add keyboard-type-specific keys before space bar
         addKeyboardTypeSpecificKeys(to: row)
 
-        // Space bar with "Lingua Latina" text that fades
         let space = createSpaceButton()
+        addFeedback(to: space)
         row.addArrangedSubview(space)
 
-        // Add keyboard-type-specific keys after space bar (like .com for URL)
         addKeyboardTypeSpecificKeysAfterSpace(to: row)
 
-        // Return - slightly wider
         let returnKey = KeyButton(key: "return")
         let returnConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
         returnKey.setImage(UIImage(systemName: "return.left", withConfiguration: returnConfig), for: .normal)
         returnKey.addTarget(self, action: #selector(returnTapped), for: .touchUpInside)
+        addFeedback(to: returnKey)
         returnKey.widthAnchor.constraint(equalToConstant: 100).isActive = true
         row.addArrangedSubview(returnKey)
 
         return row
     }
 
-    /// Add keyboard-type-specific keys before the space bar
     private func addKeyboardTypeSpecificKeys(to row: UIStackView) {
         switch currentKeyboardType {
         case .emailAddress:
-            // @ key for email addresses (following system keyboard convention)
             let atKey = KeyButton(key: "@")
             atKey.setTitle("@", for: .normal)
             atKey.titleLabel?.font = .systemFont(ofSize: 18)
             atKey.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            addFeedback(to: atKey)
             atKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
             row.addArrangedSubview(atKey)
 
         case .URL, .webSearch:
-            // / key for URLs (following system keyboard convention)
             let slashKey = KeyButton(key: "/")
             slashKey.setTitle("/", for: .normal)
             slashKey.titleLabel?.font = .systemFont(ofSize: 18)
             slashKey.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            addFeedback(to: slashKey)
             slashKey.widthAnchor.constraint(equalToConstant: 36).isActive = true
             row.addArrangedSubview(slashKey)
 
@@ -521,32 +495,31 @@ class KeyboardView: UIInputView {
         }
     }
 
-    /// Add keyboard-type-specific keys after the space bar
     private func addKeyboardTypeSpecificKeysAfterSpace(to row: UIStackView) {
         switch currentKeyboardType {
         case .emailAddress:
-            // . key for email domains
             let dotKey = KeyButton(key: ".")
             dotKey.setTitle(".", for: .normal)
             dotKey.titleLabel?.font = .systemFont(ofSize: 18)
             dotKey.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            addFeedback(to: dotKey)
             dotKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
             row.addArrangedSubview(dotKey)
 
         case .URL, .webSearch:
-            // . key for URLs
             let dotKey = KeyButton(key: ".")
             dotKey.setTitle(".", for: .normal)
             dotKey.titleLabel?.font = .systemFont(ofSize: 18)
             dotKey.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            addFeedback(to: dotKey)
             dotKey.widthAnchor.constraint(equalToConstant: 36).isActive = true
             row.addArrangedSubview(dotKey)
 
-            // .com key for URLs (system keyboard convention)
             let comKey = KeyButton(key: ".com")
             comKey.setTitle(".com", for: .normal)
             comKey.titleLabel?.font = .systemFont(ofSize: 14)
             comKey.addTarget(self, action: #selector(comKeyTapped), for: .touchUpInside)
+            addFeedback(to: comKey)
             comKey.widthAnchor.constraint(equalToConstant: 52).isActive = true
             row.addArrangedSubview(comKey)
 
@@ -564,11 +537,9 @@ class KeyboardView: UIInputView {
         space.addTarget(self, action: #selector(spaceTapped), for: .touchUpInside)
         spaceButton = space
 
-        // "Lingua Latina" label in center (will fade out after 1 second)
         let centerLabel = UILabel()
         centerLabel.text = "Lingua Latina"
         centerLabel.font = .systemFont(ofSize: 16, weight: .medium)
-        // Adaptive color: black in light mode, white in dark mode
         centerLabel.textColor = UIColor { traits in
             traits.userInterfaceStyle == .dark ? .white : .black
         }
@@ -582,11 +553,9 @@ class KeyboardView: UIInputView {
             centerLabel.centerYAnchor.constraint(equalTo: space.centerYAnchor),
         ])
 
-        // "LA" label in lower right corner - immediately visible
         let langIndicator = UILabel()
         langIndicator.text = "LA"
         langIndicator.font = .systemFont(ofSize: 9, weight: .medium)
-        // Lighter in light mode, secondary in dark mode
         langIndicator.textColor = UIColor { traits in
             traits.userInterfaceStyle == .dark
                 ? .secondaryLabel
@@ -608,7 +577,6 @@ class KeyboardView: UIInputView {
     private func animateSpaceBar() {
         guard let spaceLabel = spaceLabel else { return }
 
-        // Fade out "Lingua Latina" - LA is already visible
         UIView.animate(withDuration: 0.4) {
             spaceLabel.alpha = 0
             self.spaceButton?.backgroundColor = UIColor { traits in
@@ -668,6 +636,7 @@ class KeyboardView: UIInputView {
         for key in keys {
             let button = KeyButton(key: key)
             button.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            addFeedback(to: button)
             button.titleLabel?.font = .systemFont(ofSize: 21)
             keyButtons.append(button)
             row.addArrangedSubview(button)
@@ -682,21 +651,19 @@ class KeyboardView: UIInputView {
         row.distribution = .fill
         row.spacing = keySpacing
 
-        // Symbol toggle button
         let toggle = KeyButton(key: "symbolToggle")
         toggle.setTitle(keyboardMode == .numbers ? "#+=": "123", for: .normal)
         toggle.titleLabel?.font = .systemFont(ofSize: 15, weight: .regular)
         toggle.addTarget(self, action: #selector(symbolToggleTapped), for: .touchUpInside)
+        addFeedback(to: toggle)
         toggle.widthAnchor.constraint(equalToConstant: wideKeyWidth).isActive = true
         symbolToggleButton = toggle
         row.addArrangedSubview(toggle)
 
-        // Extra spacer
         let leftSpacer = UIView()
         leftSpacer.widthAnchor.constraint(equalToConstant: row3ExtraSpacing - keySpacing).isActive = true
         row.addArrangedSubview(leftSpacer)
 
-        // Symbol keys
         let symbolStack = UIStackView()
         symbolStack.axis = .horizontal
         symbolStack.distribution = .fillEqually
@@ -705,21 +672,21 @@ class KeyboardView: UIInputView {
         for key in keys {
             let button = KeyButton(key: key)
             button.addTarget(self, action: #selector(symbolKeyTapped(_:)), for: .touchUpInside)
+            addFeedback(to: button)
             keyButtons.append(button)
             symbolStack.addArrangedSubview(button)
         }
         row.addArrangedSubview(symbolStack)
 
-        // Extra spacer
         let rightSpacer = UIView()
         rightSpacer.widthAnchor.constraint(equalToConstant: row3ExtraSpacing - keySpacing).isActive = true
         row.addArrangedSubview(rightSpacer)
 
-        // Backspace button with long press for repeat delete
         let backspace = KeyButton(key: "backspace")
         let backspaceConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
         backspace.setImage(UIImage(systemName: "delete.left", withConfiguration: backspaceConfig), for: .normal)
         backspace.addTarget(self, action: #selector(backspaceTapped), for: .touchUpInside)
+        addFeedback(to: backspace)
         setupBackspaceLongPress(for: backspace)
         backspace.widthAnchor.constraint(equalToConstant: wideKeyWidth).isActive = true
         row.addArrangedSubview(backspace)
@@ -733,31 +700,29 @@ class KeyboardView: UIInputView {
         row.distribution = .fill
         row.spacing = keySpacing
 
-        // ABC button — wider when globe key is absent to fill the gap
-        // Future: When emoji keyboard API becomes available, repurpose globe slot for emoji access
         let modeWidth: CGFloat = showGlobeKey ? 48 : 48 + keySpacing + 48
         let mode = KeyButton(key: "ABC")
         mode.setTitle("ABC", for: .normal)
         mode.titleLabel?.font = .systemFont(ofSize: 16, weight: .regular)
         mode.addTarget(self, action: #selector(modeTapped), for: .touchUpInside)
+        addFeedback(to: mode)
         mode.widthAnchor.constraint(equalToConstant: modeWidth).isActive = true
         modeButton = mode
         row.addArrangedSubview(mode)
 
         if showGlobeKey {
-            // Globe button for input mode switching
             let globeKey = KeyButton(key: "globe")
             globeKey.setImage(UIImage(systemName: "globe"), for: .normal)
             globeKey.addTarget(self, action: #selector(globeTapped), for: .touchUpInside)
+            addFeedback(to: globeKey)
             globeKey.widthAnchor.constraint(equalToConstant: 48).isActive = true
             row.addArrangedSubview(globeKey)
         }
 
-        // Space bar (simpler version for number mode)
         let space = KeyButton(key: "space")
         space.addTarget(self, action: #selector(spaceTapped), for: .touchUpInside)
+        addFeedback(to: space)
 
-        // "LA" label
         let langIndicator = UILabel()
         langIndicator.text = "LA"
         langIndicator.font = .systemFont(ofSize: 9, weight: .medium)
@@ -777,11 +742,11 @@ class KeyboardView: UIInputView {
 
         row.addArrangedSubview(space)
 
-        // Return key
         let returnKey = KeyButton(key: "return")
         let returnConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
         returnKey.setImage(UIImage(systemName: "return.left", withConfiguration: returnConfig), for: .normal)
         returnKey.addTarget(self, action: #selector(returnTapped), for: .touchUpInside)
+        addFeedback(to: returnKey)
         returnKey.widthAnchor.constraint(equalToConstant: 100).isActive = true
         row.addArrangedSubview(returnKey)
 
@@ -806,7 +771,7 @@ class KeyboardView: UIInputView {
 
             longPressButton = button
             showLongPressPopup(for: button, options: options)
-            KeyboardFeedback.shared.playPopupOpen()
+            haptics?.playHaptic()
 
         case .changed:
             guard let popup = activeLongPressPopup else { return }
@@ -863,8 +828,8 @@ class KeyboardView: UIInputView {
             height: popupHeight
         )
 
-        popup.onSelectionChanged = {
-            KeyboardFeedback.shared.playSelectionChanged()
+        popup.onSelectionChanged = { [weak self] in
+            self?.audio?.playClickSound()
         }
 
         addSubview(popup)
@@ -899,8 +864,7 @@ class KeyboardView: UIInputView {
 
     private func startBackspaceRepeat() {
         stopBackspaceRepeat()
-        // Start with character-by-character deletion at 0.1s interval
-        backspaceTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+        backspaceTimer = Timer.scheduledTimer(withTimeInterval: backspaceRepeatInterval, repeats: true) { [weak self] _ in
             self?.performBackspaceRepeat()
         }
     }
@@ -913,15 +877,31 @@ class KeyboardView: UIInputView {
 
     private func performBackspaceRepeat() {
         backspaceDeleteCount += 1
-        KeyboardFeedback.shared.playDelete()
 
+        let deleted: Bool
         if backspaceDeleteCount > charDeleteThreshold {
-            // Switch to word-by-word deletion
-            delegate?.keyboardViewDidDeleteWord(self)
+            deleted = delegate?.keyboardViewDidDeleteWord(self) ?? false
         } else {
-            // Character-by-character deletion
-            delegate?.keyboardViewDidTapBackspace(self)
+            deleted = delegate?.keyboardViewDidTapBackspace(self) ?? false
         }
+
+        if deleted {
+            audio?.playClickSound()
+        } else {
+            // Nothing left to delete — stop repeating
+            stopBackspaceRepeat()
+        }
+    }
+
+    // MARK: - Feedback
+
+    private func addFeedback(to button: UIButton) {
+        button.addTarget(self, action: #selector(keyTouchedDown(_:)), for: .touchDown)
+    }
+
+    @objc private func keyTouchedDown(_ sender: UIButton) {
+        haptics?.playHaptic()
+        audio?.playClickSound()
     }
 
     // MARK: - Actions
@@ -992,12 +972,16 @@ class KeyboardView: UIInputView {
 
     // MARK: - Public Methods
 
+    /// Record a space insertion so the next physical space tap triggers double-tap.
+    func recordSpaceTap() {
+        lastSpaceTapTime = Date()
+    }
+
     func updateShiftState(_ state: ShiftState) {
         shiftState = state
 
         guard keyboardMode == .letters else { return }
 
-        // Update key labels
         for button in keyButtons {
             let label: String
             switch state {
@@ -1009,7 +993,6 @@ class KeyboardView: UIInputView {
             button.setTitle(label, for: .normal)
         }
 
-        // Update shift button appearance
         switch state {
         case .lowercase:
             shiftButton?.setImage(UIImage(systemName: "shift"), for: .normal)
@@ -1028,7 +1011,6 @@ class KeyboardView: UIInputView {
             label.text = i < predictions.count ? predictions[i] : nil
         }
 
-        // Show separators only between adjacent predictions
         for (i, separator) in predictionSeparators.enumerated() {
             let hasLeft = predictionLabels[i].text?.isEmpty == false
             let hasRight = predictionLabels[i + 1].text?.isEmpty == false
@@ -1036,27 +1018,15 @@ class KeyboardView: UIInputView {
         }
     }
 
-    /// Update globe key visibility based on needsInputModeSwitchKey
-    /// When hidden, the globe key is removed and the mode button (123/ABC) widens to fill the gap
     func updateGlobeKeyVisibility(_ visible: Bool) {
         guard showGlobeKey != visible else { return }
         showGlobeKey = visible
         rebuildKeyboard()
     }
 
-    /// Update keyboard type for specialized layouts (email, URL, etc.)
     func updateKeyboardType(_ type: UIKeyboardType) {
         guard currentKeyboardType != type else { return }
         currentKeyboardType = type
-        // Rebuild keyboard to reflect new type (affects bottom row keys)
         rebuildKeyboard()
     }
-}
-
-// MARK: - Audio Feedback
-
-/// Enables the system keyboard click sound via UIDevice.current.playInputClick().
-/// The sound automatically respects Settings > Sounds & Haptics > Keyboard Clicks.
-extension KeyboardView: UIInputViewAudioFeedback {
-    var enableInputClicksWhenVisible: Bool { true }
 }

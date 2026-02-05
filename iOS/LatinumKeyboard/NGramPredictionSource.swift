@@ -9,19 +9,13 @@ class NGramPredictionSource: PredictionSource {
 
     let identifier = "ngram"
 
-    // Lookup tables built at load time.
-    // Bigram index: previous word → [(next word, count)] sorted by count desc.
     private var bigramIndex: [String: [(String, Int)]] = [:]
-    // Trigram index: "w1 w2" → [(next word, count)] sorted by count desc.
     private var trigramIndex: [String: [(String, Int)]] = [:]
-    // Top unigrams for ultimate fallback, sorted by count desc.
     private var topUnigrams: [String] = []
-
     private(set) var isLoaded = false
 
     // MARK: - Loading
 
-    /// Load `ngrams.json` synchronously (called from the inference queue).
     func loadData(bundle: Bundle = .main) {
         guard let url = bundle.url(forResource: "ngrams", withExtension: "json") else {
             // JSON resource not found in bundle
@@ -33,13 +27,11 @@ class NGramPredictionSource: PredictionSource {
                 return
             }
 
-            // --- Unigrams ---
             if let uni = root["unigrams"] as? [String: Int] {
                 let sorted = uni.sorted { $0.value > $1.value }
                 topUnigrams = sorted.prefix(20).map { $0.key }
             }
 
-            // --- Bigrams → index by first word ---
             if let bi = root["bigrams"] as? [String: Int] {
                 var index: [String: [(String, Int)]] = [:]
                 for (key, count) in bi {
@@ -49,14 +41,12 @@ class NGramPredictionSource: PredictionSource {
                     let w2 = String(parts[1])
                     index[w1, default: []].append((w2, count))
                 }
-                // Sort each bucket by count descending
                 for key in index.keys {
                     index[key]?.sort { $0.1 > $1.1 }
                 }
                 bigramIndex = index
             }
 
-            // --- Trigrams → index by "w1 w2" ---
             if let tri = root["trigrams"] as? [String: Int] {
                 var index: [String: [(String, Int)]] = [:]
                 for (key, count) in tri {
@@ -80,7 +70,6 @@ class NGramPredictionSource: PredictionSource {
     // MARK: - PredictionSource
 
     func completions(context: String, prefix: String) -> [String] {
-        // N-gram source handles next-word prediction, not prefix completion.
         return []
     }
 
@@ -92,7 +81,6 @@ class NGramPredictionSource: PredictionSource {
         var candidates: [String] = []
         var seen = Set<String>()
 
-        // 1. Try trigram if we have 2 preceding words
         if words.count >= 2 {
             let key = "\(words[words.count - 2]) \(words[words.count - 1])"
             if let matches = trigramIndex[key] {
@@ -104,7 +92,6 @@ class NGramPredictionSource: PredictionSource {
             }
         }
 
-        // 2. Fall back to bigram
         if let lastWord = words.last, candidates.count < 3 {
             if let matches = bigramIndex[lastWord] {
                 for (word, _) in matches.prefix(3) {
@@ -116,7 +103,6 @@ class NGramPredictionSource: PredictionSource {
             }
         }
 
-        // 3. Fall back to unigrams
         if candidates.count < 3 {
             for word in topUnigrams {
                 if seen.insert(word).inserted {
@@ -131,7 +117,6 @@ class NGramPredictionSource: PredictionSource {
 
     // MARK: - Context Parsing
 
-    /// Extract the last N words from the context, normalized.
     private func lastWords(from context: String, count: Int) -> [String] {
         let normalized = LatinNormalization.normalizeForModel(context)
         let tokens = normalized.split(whereSeparator: { !$0.isLetter })

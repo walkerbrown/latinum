@@ -40,7 +40,6 @@ class LongPressPopupView: UIView {
     // MARK: - Setup
 
     private func setupView() {
-        // Adaptive background: white in light mode, gray in dark mode
         backgroundColor = UIColor { traits in
             traits.userInterfaceStyle == .dark
                 ? UIColor(white: 0.25, alpha: 1.0)
@@ -66,7 +65,6 @@ class LongPressPopupView: UIView {
         ])
 
         for option in options {
-            // Container view for highlight background
             let container = UIView()
             container.layer.cornerRadius = 6
             container.clipsToBounds = true
@@ -92,15 +90,12 @@ class LongPressPopupView: UIView {
 
     // MARK: - Public Methods
 
-    /// Update selection based on touch location (in superview coordinates)
     func updateSelection(at point: CGPoint) {
         let localPoint = convert(point, from: superview)
 
-        // Check if point is within popup bounds (with some tolerance)
         let expandedBounds = bounds.insetBy(dx: -10, dy: -10)
         if expandedBounds.contains(localPoint) {
-            // Calculate which option is selected
-            let adjustedX = localPoint.x - 4 // Account for padding
+            let adjustedX = localPoint.x - 4
             let optionWidth = (bounds.width - 8) / CGFloat(options.count)
             let index = Int(adjustedX / optionWidth)
             selectedIndex = min(max(0, index), options.count - 1)
@@ -109,7 +104,6 @@ class LongPressPopupView: UIView {
         }
     }
 
-    /// Complete selection and return selected character (or nil if none)
     func completeSelection() -> String? {
         if let index = selectedIndex, index >= 0, index < options.count {
             return options[index]
@@ -132,10 +126,10 @@ class LongPressPopupView: UIView {
     // MARK: - Class Methods
 
     class func popupWidth(for optionCount: Int) -> CGFloat {
-        return CGFloat(optionCount) * optionWidth + 8 // Add padding
+        return CGFloat(optionCount) * optionWidth + 8
     }
 
     class func popupHeight() -> CGFloat {
-        return optionHeight + 8 // Add padding
+        return optionHeight + 8
     }
 }
