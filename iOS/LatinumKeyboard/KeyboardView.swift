@@ -1,5 +1,20 @@
 import UIKit
 
+/// A view that expands its hit testing area beyond its bounds
+private class ExpandedHitAreaView: UIView {
+    var hitAreaInsets: UIEdgeInsets = .zero
+
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        let expandedBounds = bounds.inset(by: UIEdgeInsets(
+            top: -hitAreaInsets.top,
+            left: -hitAreaInsets.left,
+            bottom: -hitAreaInsets.bottom,
+            right: -hitAreaInsets.right
+        ))
+        return expandedBounds.contains(point)
+    }
+}
+
 /// Protocol for keyboard view delegate
 protocol KeyboardViewDelegate: AnyObject {
     func keyboardView(_ view: KeyboardView, didTapKey key: String)
@@ -92,6 +107,10 @@ class KeyboardView: UIView {
     private var predictionLabels: [UILabel] = []
     private var predictionSeparators: [UIView] = []
 
+    // Flexible spacers between rows
+    private var rowSpacers: [UIView] = []
+    private var predictionSpacer: UIView?
+
     // Layout constants
     private let keySpacing: CGFloat = 6
     private let wideKeyWidth: CGFloat = 50
@@ -105,10 +124,6 @@ class KeyboardView: UIView {
 
     private var keyHeight: CGFloat {
         isLandscape ? 28 : 46
-    }
-
-    private var rowSpacing: CGFloat {
-        isLandscape ? 8 : 10
     }
 
     // MARK: - Initialization
@@ -126,11 +141,7 @@ class KeyboardView: UIView {
     // MARK: - Layout Constants
 
     private let predictionRowHeight: CGFloat = 25
-    private let bottomPadding: CGFloat = 4
-
-    // Track first appearance to apply top offset hack
-    static var isFirstAppearance = true
-    private var topConstraint: NSLayoutConstraint?
+    private let edgePadding: CGFloat = 4
 
     // MARK: - Setup
 
@@ -150,44 +161,33 @@ class KeyboardView: UIView {
         }
     }
 
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-
-        if window != nil {
-            // Keyboard appearing - apply offset if needed
-            if KeyboardView.isFirstAppearance {
-                topConstraint?.constant = 20
-            } else {
-                topConstraint?.constant = 2
-            }
-        } else {
-            // didMoveToWindow(nil) = cycling keyboards
-            // After cycling, system gives full height, so no offset needed
-            KeyboardView.isFirstAppearance = false
-        }
-    }
-
     private func setupKeyboardStack() {
         keyboardStack.axis = .vertical
         keyboardStack.distribution = .fill
-        keyboardStack.spacing = rowSpacing
         keyboardStack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(keyboardStack)
 
-        topConstraint = keyboardStack.topAnchor.constraint(equalTo: topAnchor, constant: 2)
-
         NSLayoutConstraint.activate([
-            topConstraint!,
-            keyboardStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomPadding),
+            keyboardStack.topAnchor.constraint(equalTo: topAnchor, constant: edgePadding),
+            keyboardStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -edgePadding),
             keyboardStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: keySpacing + 1),
             keyboardStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -(keySpacing + 1)),
         ])
     }
 
-    private func rebuildKeyboard() {
-        // Update spacing for current orientation
-        keyboardStack.spacing = rowSpacing
+    /// Minimum height for spacers between rows
+    private let minSpacerHeight: CGFloat = 8
 
+    /// Creates a flexible spacer view for use between keyboard rows
+    private func createSpacer() -> UIView {
+        let spacer = UIView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
+        spacer.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        spacer.heightAnchor.constraint(greaterThanOrEqualToConstant: minSpacerHeight).isActive = true
+        return spacer
+    }
+
+    private func rebuildKeyboard() {
         // Clear existing views
         for view in keyboardStack.arrangedSubviews {
             keyboardStack.removeArrangedSubview(view)
@@ -202,11 +202,23 @@ class KeyboardView: UIView {
         langLabel = nil
         predictionLabels.removeAll()
         predictionSeparators.removeAll()
+        rowSpacers.removeAll()
+        predictionSpacer = nil
 
-        // Build prediction row first (shared across all keyboard modes)
+        // Add top spacer before prediction row
+        let topSpacer = createSpacer()
+        keyboardStack.addArrangedSubview(topSpacer)
+        rowSpacers.append(topSpacer)
+
+        // Build prediction row (shared across all keyboard modes)
         let predictionRow = createPredictionRow()
         predictionRow.heightAnchor.constraint(equalToConstant: predictionRowHeight).isActive = true
         keyboardStack.addArrangedSubview(predictionRow)
+
+        // Add spacer below prediction row (will be 2x height of other spacers)
+        let belowPredictionSpacer = createSpacer()
+        keyboardStack.addArrangedSubview(belowPredictionSpacer)
+        predictionSpacer = belowPredictionSpacer
 
         switch keyboardMode {
         case .letters:
@@ -216,12 +228,25 @@ class KeyboardView: UIView {
         case .symbols:
             buildSymbolKeyboard()
         }
+
+        // Constrain all regular spacers to equal height
+        if let firstSpacer = rowSpacers.first {
+            for spacer in rowSpacers.dropFirst() {
+                spacer.heightAnchor.constraint(equalTo: firstSpacer.heightAnchor).isActive = true
+            }
+            // Prediction spacer is 2x the height of regular spacers
+            predictionSpacer?.heightAnchor.constraint(equalTo: firstSpacer.heightAnchor, multiplier: 2).isActive = true
+        }
     }
 
     // MARK: - Prediction Row
 
+    /// Extra vertical hit area for prediction row taps (extends into spacers)
+    private let predictionHitAreaExtension: CGFloat = 4
+
     private func createPredictionRow() -> UIView {
-        let container = UIView()
+        let container = ExpandedHitAreaView()
+        container.hitAreaInsets = UIEdgeInsets(top: predictionHitAreaExtension, left: 0, bottom: predictionHitAreaExtension, right: 0)
         container.backgroundColor = UIColor.clear.withAlphaComponent(0.01)
 
         let stackView = UIStackView()
@@ -301,9 +326,17 @@ class KeyboardView: UIView {
         let row3 = createBottomLetterRow()
         let row4 = createBottomFunctionRow()
 
-        for row in [row1, row2, row3, row4] {
+        let rows = [row1, row2, row3, row4]
+        for (index, row) in rows.enumerated() {
             row.heightAnchor.constraint(equalToConstant: keyHeight).isActive = true
             keyboardStack.addArrangedSubview(row)
+
+            // Add spacer after each row except the last
+            if index < rows.count - 1 {
+                let spacer = createSpacer()
+                keyboardStack.addArrangedSubview(spacer)
+                rowSpacers.append(spacer)
+            }
         }
 
         updateShiftState(shiftState)
@@ -536,9 +569,16 @@ class KeyboardView: UIView {
         let row3 = createNumberBottomRow(keys: numberRow3)
         let row4 = createNumberFunctionRow()
 
-        for row in [row1, row2, row3, row4] {
+        let rows = [row1, row2, row3, row4]
+        for (index, row) in rows.enumerated() {
             row.heightAnchor.constraint(equalToConstant: keyHeight).isActive = true
             keyboardStack.addArrangedSubview(row)
+
+            if index < rows.count - 1 {
+                let spacer = createSpacer()
+                keyboardStack.addArrangedSubview(spacer)
+                rowSpacers.append(spacer)
+            }
         }
     }
 
@@ -548,9 +588,16 @@ class KeyboardView: UIView {
         let row3 = createNumberBottomRow(keys: symbolRow3)
         let row4 = createNumberFunctionRow()
 
-        for row in [row1, row2, row3, row4] {
+        let rows = [row1, row2, row3, row4]
+        for (index, row) in rows.enumerated() {
             row.heightAnchor.constraint(equalToConstant: keyHeight).isActive = true
             keyboardStack.addArrangedSubview(row)
+
+            if index < rows.count - 1 {
+                let spacer = createSpacer()
+                keyboardStack.addArrangedSubview(spacer)
+                rowSpacers.append(spacer)
+            }
         }
     }
 

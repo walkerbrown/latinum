@@ -56,15 +56,10 @@ class KeyButton: UIButton {
         titleLabel?.font = .systemFont(ofSize: 22, weight: .regular)
         layer.cornerRadius = 7
         translatesAutoresizingMaskIntoConstraints = false
-    }
 
-    // MARK: - Trait Changes
-
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-
-        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
-            backgroundColor = isHighlighted ? highlightedBackgroundColor : normalBackgroundColor
+        // Update background color when color appearance changes (dark/light mode)
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _: UITraitCollection) in
+            self.backgroundColor = self.isHighlighted ? self.highlightedBackgroundColor : self.normalBackgroundColor
         }
     }
 

@@ -23,47 +23,12 @@ class KeyboardViewController: UIInputViewController {
     /// The text currently being typed (for prediction context)
     private var currentWord: String = ""
 
-    /// Height constraint for the keyboard
-    private var heightConstraint: NSLayoutConstraint?
-
     // MARK: - Lifecycle
 
     override func loadView() {
-        // Create view hierarchy early, before system calls setInputViews:
-        // This ensures the view has a valid size when the system queries it
-
-//        let screenWidth = UIScreen.main.bounds.width
-//        let initialHeight = calculateKeyboardHeight()
-
-        // Create the container view with initial frame
-//        let containerView = UIView(frame: CGRect(x: 0, y: 0, width: screenWidth, height: initialHeight))
-//        containerView.backgroundColor = .clear
-//        self.view = containerView
-
-        // Create and add keyboard view
         keyboardView = KeyboardView()
-        self.view = keyboardView
         keyboardView.delegate = self
-        
-//        NSLayoutConstraint.activate([
-//            keyboardView.topAnchor.constraint(equalTo: super.view.topAnchor),
-//        ])
-        
-        // Pin keyboard view to all edges
-//        NSLayoutConstraint.activate([
-//            keyboardView.topAnchor.constraint(equalTo: super.view.topAnchor),
-//            keyboardView.bottomAnchor.constraint(equalTo: super.view.bottomAnchor),
-//            keyboardView.leadingAnchor.constraint(equalTo: super.view.leadingAnchor),
-//            keyboardView.trailingAnchor.constraint(equalTo: super.view.trailingAnchor),
-//        ])
-        
-//        keyboardView.translatesAutoresizingMaskIntoConstraints = false
-//        containerView.addSubview(keyboardView)
-
-        // Set height constraint on container
-//        heightConstraint = containerView.heightAnchor.constraint(equalToConstant: initialHeight)
-//        heightConstraint?.priority = .defaultHigh
-//        heightConstraint?.isActive = true
+        view = keyboardView
     }
 
     override func viewDidLoad() {
@@ -72,27 +37,12 @@ class KeyboardViewController: UIInputViewController {
     }
 
     override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(false)
+        super.viewWillAppear(animated)
         updateAutoCapitalization()
         updatePredictions()
     }
 
-//    override func viewWillLayoutSubviews() {
-//        super.viewWillLayoutSubviews()
-//        // Update height for orientation changes
-//        let newHeight = calculateKeyboardHeight()
-//        heightConstraint?.constant = newHeight
-//    }
-
     // MARK: - Setup
-
-//    private func calculateKeyboardHeight() -> CGFloat {
-//        let isLandscape = UIScreen.main.bounds.width > UIScreen.main.bounds.height
-//        let keyHeight: CGFloat = isLandscape ? 28 : 46
-//        let rowSpacing: CGFloat = isLandscape ? 8 : 10
-//        // prediction row (33) + 4 key rows + 4 row spacings + bottom padding (4)
-//        return 0 + (keyHeight * 4) + (rowSpacing * 4) + 4
-//    }
 
     private func setupPredictionEngine() {
         predictionEngine = PredictionEngine()
