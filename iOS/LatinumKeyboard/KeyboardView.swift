@@ -96,16 +96,26 @@ class KeyboardView: UIView {
     private var rowSpacers: [UIView] = []
     private var predictionSpacer: UIView?
 
-    // Layout constants
+    // MARK: - Layout Constants
+
+    // Keyboard geometry
     private let keySpacing: CGFloat = 6
     private let wideKeyWidth: CGFloat = 50
-    private let row3ExtraSpacing: CGFloat = 14  // Extra space between shift-z and m-backspace
+    private let row3ExtraSpacing: CGFloat = 14
 
-    // Track orientation for rebuilding
+    // Vertical layout (hand-tuned to match system keyboards)
+    private let predictionRowHeight: CGFloat = 28
+    private let predictionContentHeight: CGFloat = 25
+    private let topEdgePadding: CGFloat = 9
+    private let bottomEdgePadding: CGFloat = 4
+    private let minSpacerHeight: CGFloat = 10
+
+    // Orientation tracking
+    private var lastIsLandscape: Bool?
+
     private var isLandscape: Bool {
         UIScreen.main.bounds.width > UIScreen.main.bounds.height
     }
-    private var lastIsLandscape: Bool?
 
     private var keyHeight: CGFloat {
         isLandscape ? 28 : 46
@@ -122,12 +132,6 @@ class KeyboardView: UIView {
         super.init(coder: coder)
         setupView()
     }
-
-    // MARK: - Layout Constants
-
-    private let predictionRowHeight: CGFloat = 28
-    private let topEdgePadding: CGFloat = 9  // Hand-tuned to accomodate capital accented pop-up keys
-    private let bottomEdgePadding: CGFloat = 4  // Hand-tuned to align with system keyboards
 
     // MARK: - Setup
 
@@ -161,10 +165,6 @@ class KeyboardView: UIView {
         ])
     }
 
-    /// Minimum height for spacers between rows
-    private let minSpacerHeight: CGFloat = 10
-
-    /// Creates a flexible spacer view for use between keyboard rows
     private func createSpacer() -> UIView {
         let spacer = UIView()
         spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
@@ -224,6 +224,7 @@ class KeyboardView: UIView {
 
     private func createPredictionRow() -> UIView {
         let container = UIView()
+        // Near-transparent background required for hit testing on transparent views
         container.backgroundColor = UIColor.clear.withAlphaComponent(0.01)
 
         let stackView = UIStackView()
@@ -233,10 +234,9 @@ class KeyboardView: UIView {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(stackView)
 
-        // Center stack view vertically, pin to sides
         NSLayoutConstraint.activate([
             stackView.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            stackView.heightAnchor.constraint(equalToConstant: 25),
+            stackView.heightAnchor.constraint(equalToConstant: predictionContentHeight),
             stackView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
         ])

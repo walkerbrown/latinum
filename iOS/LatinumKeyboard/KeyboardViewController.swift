@@ -58,10 +58,6 @@ class KeyboardViewController: UIInputViewController {
 
     // MARK: - Text Input
 
-    override func textWillChange(_ textInput: UITextInput?) {
-        // Called when the text is about to change
-    }
-
     override func textDidChange(_ textInput: UITextInput?) {
         // Update context when text changes externally
         updateCurrentWord()
@@ -116,23 +112,16 @@ class KeyboardViewController: UIInputViewController {
         }
     }
 
-    /// Check if we should auto-capitalize (empty field or after ". ")
+    /// Enable uppercase if at start of text or after sentence-ending punctuation
     private func updateAutoCapitalization() {
         let context = textDocumentProxy.documentContextBeforeInput ?? ""
 
-        // Capitalize if empty or ends with ". "
         if context.isEmpty || context.hasSuffix(". ") {
             if shiftState == .lowercase {
                 shiftState = .uppercase
                 keyboardView.updateShiftState(shiftState)
             }
         }
-    }
-
-    /// Check if we should capitalize after current action
-    private func shouldAutoCapitalize() -> Bool {
-        let context = textDocumentProxy.documentContextBeforeInput ?? ""
-        return context.isEmpty || context.hasSuffix(". ")
     }
 
     // MARK: - Key Handling
