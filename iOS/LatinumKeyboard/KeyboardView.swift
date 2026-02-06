@@ -829,6 +829,7 @@ class KeyboardView: UIInputView {
         )
 
         popup.onSelectionChanged = { [weak self] in
+            self?.haptics?.playHaptic()
             self?.audio?.playClickSound()
         }
 
@@ -886,6 +887,7 @@ class KeyboardView: UIInputView {
         }
 
         if deleted {
+            haptics?.playHaptic()
             audio?.playClickSound()
         } else {
             // Nothing left to delete — stop repeating
