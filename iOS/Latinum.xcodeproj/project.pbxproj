@@ -34,6 +34,7 @@
 		D90B8C6429E8850F6602FDA8 /* NGramPredictionSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864D73DE536B8D4B4EC80603 /* NGramPredictionSource.swift */; };
 		EA04A3CADAA3F469FF208B95 /* FrequencyCompletionSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C8E7EC0F4AF9A38FBE7DFF /* FrequencyCompletionSource.swift */; };
 		FB36A897B069AC2D79DA936E /* ngrams.json in Resources */ = {isa = PBXBuildFile; fileRef = 9FEB7A42E9FB8BE879F7AAC7 /* ngrams.json */; };
+		FC43157B2F35B3660014AC41 /* LatinumAppIcon.png in Resources */ = {isa = PBXBuildFile; fileRef = FC43157A2F35B3660014AC41 /* LatinumAppIcon.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +97,7 @@
 		D85F59F42DF819B9D7CC709F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		F0C092DBD8221DC17E326F52 /* key-down.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "key-down.wav"; sourceTree = "<group>"; };
 		F56F5F483E2C712C57CB58E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		FC43157A2F35B3660014AC41 /* LatinumAppIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LatinumAppIcon.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -103,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				00C9BF0DEF44E0DACCD03F02 /* Assets.xcassets */,
+				FC43157A2F35B3660014AC41 /* LatinumAppIcon.png */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -294,6 +297,7 @@
 			files = (
 				A2FF5034CA76868C47DD37B2 /* Assets.xcassets in Resources */,
 				21DC5CFDA42D77B8C3F98BF7 /* Settings.bundle in Resources */,
+				FC43157B2F35B3660014AC41 /* LatinumAppIcon.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,6 +394,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Latinum/Latinum.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
@@ -574,6 +579,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_ENTITLEMENTS = Latinum/Latinum.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
