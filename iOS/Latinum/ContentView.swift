@@ -123,10 +123,6 @@ struct SetupContentView: View {
 
                     InstallKeyboardStepView(number: 1)
 
-                    // Keyboard installed status
-                    KeyboardInstalledStatusView(isInstalled: keyboardInstalled)
-                        .frame(maxWidth: .infinity)
-
                     SetupStepView(
                         number: 2,
                         title: "Manage Keyboards",
@@ -138,6 +134,11 @@ struct SetupContentView: View {
                         title: "Start Typing",
                         description: "Switch to the Latinum keyboard using the globe key"
                     )
+                    
+                    // Keyboard installed status
+                    KeyboardInstalledStatusView(isInstalled: keyboardInstalled)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 16)
 
                     Divider()
                         .padding(.vertical, 16)
