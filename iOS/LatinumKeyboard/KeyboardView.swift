@@ -1055,6 +1055,10 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
     func updateKeyboardType(_ type: UIKeyboardType) {
         guard currentKeyboardType != type else { return }
         currentKeyboardType = type
-        rebuildKeyboard()
+        if type == .emailAddress || type == .URL || type == .webSearch {
+            rebuildKeyboard(displayLanguageLabel: false)
+        } else {
+            rebuildKeyboard()
+        }
     }
 }
