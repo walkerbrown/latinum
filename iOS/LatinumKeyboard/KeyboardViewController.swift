@@ -305,7 +305,13 @@ class KeyboardViewController: UIInputViewController {
 
     func handleDoubleTapSpace() {
         lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
-        textDocumentProxy.deleteBackward()
+
+        // Delete all trailing spaces (the one just inserted + any pre-existing)
+        while let context = textDocumentProxy.documentContextBeforeInput,
+              context.hasSuffix(" ") {
+            textDocumentProxy.deleteBackward()
+        }
+
         textDocumentProxy.insertText(". ")
         currentWord = ""
 
