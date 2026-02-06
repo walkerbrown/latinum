@@ -3,6 +3,16 @@
 <plist version="1.0">
 <dict>
 	<key>PreferenceSpecifiers</key>
-	<array/>
+	<array>
+		<!-- Placeholder specifier (empty Title) required for iOS to show Keyboards section in App Settings. -->
+		<dict>
+			<key>Type</key>
+			<string></string>
+			<key>Title</key>
+			<string></string>
+			<key>Key</key>
+			<string></string>
+		</dict>
+	</array>
 </dict>
 </plist>

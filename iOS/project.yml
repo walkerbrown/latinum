@@ -36,6 +36,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     entitlements:
       path: Latinum/Latinum.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.org.walkerbrown.latinum.shared
     dependencies:
       - target: LatinumKeyboard
         embed: true
