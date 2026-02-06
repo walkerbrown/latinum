@@ -165,7 +165,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
         return spacer
     }
 
-    private func rebuildKeyboard() {
+    private func rebuildKeyboard(displayLanguageLabel: Bool = true) {
         for view in keyboardStack.arrangedSubviews {
             keyboardStack.removeArrangedSubview(view)
             view.removeFromSuperview()
@@ -192,7 +192,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
 
         switch keyboardMode {
         case .letters:
-            buildLetterKeyboard()
+            buildLetterKeyboard(displayLanguageLabel: displayLanguageLabel)
         case .numbers:
             buildNumberKeyboard()
         case .symbols:
@@ -303,7 +303,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
 
     // MARK: - Letter Keyboard
 
-    private func buildLetterKeyboard() {
+    private func buildLetterKeyboard(displayLanguageLabel: Bool = true) {
         let row1 = createUniformKeyRow(keys: letterRow1)
         let row2 = createCenteredKeyRow(keys: letterRow2)
         let row3 = createBottomLetterRow()
@@ -324,13 +324,17 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
 
         updateShiftState(shiftState)
 
-        self.spaceButton?.backgroundColor = UIColor { traits in
-            traits.userInterfaceStyle == .dark
-            ? UIColor(white: 0.35, alpha: 1.0)
-            : UIColor(white: 1.0, alpha: 1.0)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.animateSpaceBar()
+        if displayLanguageLabel {
+            self.spaceButton?.backgroundColor = UIColor { traits in
+                traits.userInterfaceStyle == .dark
+                ? UIColor(white: 0.35, alpha: 1.0)
+                : UIColor(white: 1.0, alpha: 1.0)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.animateSpaceBar()
+            }
+        } else {
+            spaceLabel?.alpha = 0
         }
     }
 
@@ -955,6 +959,12 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
         } else {
             delegate?.keyboardViewDidTapSpace(self)
             lastSpaceTapTime = now
+        }
+
+        // Return to letters mode after space in numbers/symbols mode
+        if keyboardMode != .letters {
+            keyboardMode = .letters
+            rebuildKeyboard(displayLanguageLabel: false)
         }
     }
 
