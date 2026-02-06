@@ -1,44 +1,43 @@
 # LATINVM
 
-A fully offline Latin keyboard with word completion and next-word prediction, built on n-gram frequency data extracted from a classical Latin corpus.
+A fully offline Latin keyboard with word completion and next word prediction, built on n-gram frequency data extracted from a classical Latin corpus.
 
 ## Features
 
-- **Word completion** — frequency-ranked suggestions as you type (binary search on 50K-word list)
-- **Next-word prediction** — trigram → bigram → unigram fallback chain
+- **Privacy preserving** — no `Full Access` entitlement, no data collection, all processing on-device
+- **Word completion** — frequency-ranked suggestions as you type (binary search on 50k-word list)
+- **Next word prediction** — trigram → bigram → unigram fallback chain
 - **Macron & ligature input** — long-press vowels for ā ē ī ō ū, or æ œ
 - **Diacritic preservation** — user-typed macrons carry through into completions
-- **Word highlight correction** — select a word to see alternative completions
-- **Fully offline** — no network access, no data collection, all inference on-device
+- **Suggestions on highlight** — select a word to see alternative completions
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  KeyboardViewController                              │
+┌───────────────────────────────────────────────────────┐
+│  KeyboardViewController                               │
 │    ├─ input handling, shift/caps, auto-capitalization │
-│    └─ word-highlight trigger (selectedText)           │
-├──────────────────────────────────────────────────────┤
-│  PredictionEngine                                    │
-│    ├─ synchronous lookups on main thread              │
+│    └─ word-highlight trigger (selected text)          │
+├───────────────────────────────────────────────────────┤
+│  PredictionEngine                                     │
 │    ├─ merges & deduplicates across sources            │
-│    └─ macron/ligature preservation via LatinNorm.     │
-├──────────────────────────────────────────────────────┤
-│  PredictionSource chain (queried in order):          │
-│    1. FrequencyCompletionSource  (prefix completion) │
-│    2. NGramPredictionSource      (next-word)         │
-│    3. FallbackPredictionSource   (hardcoded ~170 w.) │
-└──────────────────────────────────────────────────────┘
+│    └─ macron/ligature preservation                    │
+├───────────────────────────────────────────────────────┤
+│  PredictionSource chain (queried in order):           │
+│    1. FrequencyCompletionSource  (prefix completion)  │
+│    2. NGramPredictionSource      (next word)          │
+│    3. FallbackPredictionSource   (fallback 170 words) │
+└───────────────────────────────────────────────────────┘
 ```
 
 **Data files** (bundled as JSON, ~3.3 MB combined):
 
 | File | Contents | Lookup |
 |---|---|---|
-| `word_frequencies.json` | 50K words sorted by corpus frequency | Binary search on alphabetically sorted array |
-| `ngrams.json` | 94K unigrams, 50K bigrams, 30K trigrams | Dictionary indexed by preceding word(s) |
+| `word_frequencies.json` | 50k words sorted by corpus frequency | Binary search on alphabetically sorted array |
+| `ngrams.json` | 94k unigrams, 50k bigrams, 30k trigrams | Dictionary indexed by preceding word(s) |
 
-Runtime memory: ~8–14 MB, well within the 30 MB keyboard extension limit.
+Runtime memory footprint: ~8–14 MB, well within the iOS keyboard extension limit of approximately 30 MB.
 
 ## Project Structure
 
@@ -59,7 +58,7 @@ latinum/
 │   │   ├── FrequencyCompletionSource.swift
 │   │   ├── NGramPredictionSource.swift
 │   │   ├── LatinNormalization.swift
-│   │   └── Resources/       # word_frequencies.json, ngrams.json, key-down.wav
+│   │   └── Resources/        # word_frequencies.json, ngrams.json, key-down.wav
 │   ├── LatinumTests/         # Unit tests
 │   └── project.yml           # XcodeGen project spec
 └── latincorpus.txt           # Raw Latin corpus (~29 MB)
