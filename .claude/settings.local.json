@@ -15,12 +15,13 @@
       "Bash(python:*)",
       "Bash(find:*)",
       "Bash(sort:*)",
-      "Bash(git rm:*)",
       "Bash(xargs -I {} sh -c 'ls -lh \"\"{}\"\" 2>/dev/null || echo \"\"{} \\(staged for removal\\)\"\"')",
       "WebSearch",
       "Bash(ls:*)",
       "Bash(xcrun simctl:*)",
-      "Bash(ffmpeg:*)"
+      "Bash(ffmpeg:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)"
     ]
   }
 }
