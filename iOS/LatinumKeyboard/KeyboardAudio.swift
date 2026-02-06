@@ -16,6 +16,7 @@ final class KeyboardAudio {
 
     /// Load key-down.wav from the keyboard extension bundle.
     func prepare() {
+        guard !loaded else { return }
         guard let url = Bundle.main.url(forResource: "key-down", withExtension: "wav") else { return }
 
         let status = AudioServicesCreateSystemSoundID(url as CFURL, &soundID)

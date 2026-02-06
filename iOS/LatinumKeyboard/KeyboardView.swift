@@ -25,7 +25,7 @@ enum KeyboardMode {
 }
 
 /// Main keyboard view containing all keys and prediction bar
-class KeyboardView: UIInputView {
+class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
 
     // MARK: - Constants
 
@@ -233,6 +233,12 @@ class KeyboardView: UIInputView {
             tapContainer.tag = i
             tapContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(predictionTapped(_:))))
 
+            let touchDown = UILongPressGestureRecognizer(target: self, action: #selector(predictionTouchedDown(_:)))
+            touchDown.minimumPressDuration = 0
+            touchDown.cancelsTouchesInView = false
+            touchDown.delegate = self
+            tapContainer.addGestureRecognizer(touchDown)
+
             let label = UILabel()
             label.font = .systemFont(ofSize: 19)
             label.textColor = .label
@@ -272,14 +278,29 @@ class KeyboardView: UIInputView {
         return container
     }
 
+    @objc private func predictionTouchedDown(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began,
+              let index = gesture.view?.tag,
+              index < predictionLabels.count,
+              let text = predictionLabels[index].text,
+              !text.isEmpty else { return }
+        audio?.playClickSound()
+        haptics?.playHaptic()
+    }
+
     @objc private func predictionTapped(_ gesture: UITapGestureRecognizer) {
         guard let index = gesture.view?.tag,
               index < predictionLabels.count,
               let text = predictionLabels[index].text,
               !text.isEmpty else { return }
-        haptics?.playHaptic()
-        audio?.playClickSound()
         delegate?.keyboardView(self, didSelectPrediction: text)
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        true
     }
 
     // MARK: - Letter Keyboard
@@ -829,8 +850,8 @@ class KeyboardView: UIInputView {
         )
 
         popup.onSelectionChanged = { [weak self] in
-            self?.haptics?.playHaptic()
             self?.audio?.playClickSound()
+            self?.haptics?.playHaptic()
         }
 
         addSubview(popup)
@@ -887,8 +908,8 @@ class KeyboardView: UIInputView {
         }
 
         if deleted {
-            haptics?.playHaptic()
             audio?.playClickSound()
+            haptics?.playHaptic()
         } else {
             // Nothing left to delete — stop repeating
             stopBackspaceRepeat()
@@ -902,8 +923,8 @@ class KeyboardView: UIInputView {
     }
 
     @objc private func keyTouchedDown(_ sender: UIButton) {
-        haptics?.playHaptic()
         audio?.playClickSound()
+        haptics?.playHaptic()
     }
 
     // MARK: - Actions

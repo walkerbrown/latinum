@@ -36,13 +36,12 @@ class KeyboardViewController: UIInputViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        audio.prepare()
         setupPredictionEngine()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        haptics.prepare()
-        audio.prepare()
         haptics.isEnabled = KeyboardSettings.hapticEnabled
         audio.isEnabled = KeyboardSettings.soundEnabled
         keyboardView.haptics = haptics
