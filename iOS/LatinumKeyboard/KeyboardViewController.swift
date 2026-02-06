@@ -231,9 +231,20 @@ class KeyboardViewController: UIInputViewController {
         performPredictionUpdate()
     }
 
-    /// Delete one character backward. Returns true if content was deleted.
+    /// Delete one character backward (or the entire selection). Returns true if content was deleted.
     @discardableResult
     func deleteBackward() -> Bool {
+        if hasSelection, textDocumentProxy.selectedText != nil {
+            lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
+            textDocumentProxy.deleteBackward()
+            hasSelection = false
+            currentWord = ""
+            updateCurrentWord()
+            performPredictionUpdate()
+            updateAutoCapitalization()
+            return true
+        }
+
         // Check if there's content to delete
         let hasContent = textDocumentProxy.documentContextBeforeInput?.isEmpty == false
 
