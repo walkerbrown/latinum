@@ -1,4 +1,4 @@
-# Latinum — Predictive Latin Keyboard for iOS
+# LATINVM
 
 A fully offline Latin keyboard with word completion and next-word prediction, built on n-gram frequency data extracted from a classical Latin corpus.
 
@@ -16,18 +16,18 @@ A fully offline Latin keyboard with word completion and next-word prediction, bu
 ```
 ┌──────────────────────────────────────────────────────┐
 │  KeyboardViewController                              │
-│    ├─ input handling, shift/caps, debounced updates   │
+│    ├─ input handling, shift/caps, auto-capitalization │
 │    └─ word-highlight trigger (selectedText)           │
 ├──────────────────────────────────────────────────────┤
 │  PredictionEngine                                    │
-│    ├─ async dispatch on serial inference queue        │
+│    ├─ synchronous lookups on main thread              │
 │    ├─ merges & deduplicates across sources            │
 │    └─ macron/ligature preservation via LatinNorm.     │
 ├──────────────────────────────────────────────────────┤
 │  PredictionSource chain (queried in order):          │
 │    1. FrequencyCompletionSource  (prefix completion) │
 │    2. NGramPredictionSource      (next-word)         │
-│    3. FallbackPredictionSource   (hardcoded ~120 w.) │
+│    3. FallbackPredictionSource   (hardcoded ~170 w.) │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -52,15 +52,17 @@ latinum/
 │   ├── Latinum/              # Host app (setup instructions)
 │   ├── LatinumKeyboard/      # Keyboard extension
 │   │   ├── KeyboardViewController.swift
+│   │   ├── KeyboardView.swift
+│   │   ├── KeyboardFeedback.swift
+│   │   ├── DiacriticMenuView.swift
 │   │   ├── PredictionEngine.swift
 │   │   ├── FrequencyCompletionSource.swift
 │   │   ├── NGramPredictionSource.swift
 │   │   ├── LatinNormalization.swift
-│   │   └── Resources/       # word_frequencies.json, ngrams.json
+│   │   └── Resources/       # word_frequencies.json, ngrams.json, key-down.wav
 │   ├── LatinumTests/         # Unit tests
 │   └── project.yml           # XcodeGen project spec
-├── latincorpus.txt           # Raw Latin corpus (~29 MB)
-└── tests/                    # Python tests
+└── latincorpus.txt           # Raw Latin corpus (~29 MB)
 ```
 
 ## Requirements
@@ -88,8 +90,7 @@ open Latinum.xcodeproj   # Build to device, then:
 
 ```bash
 # iOS (Xcode)
-xcodebuild -project iOS/Latinum.xcodeproj -scheme Latinum \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' test
+xcodebuild -project iOS/Latinum.xcodeproj -scheme Latinum -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 
 # Python
 python3 data_pipeline/normalization.py

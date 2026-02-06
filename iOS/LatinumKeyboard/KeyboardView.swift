@@ -63,8 +63,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
     // MARK: - Properties
 
     weak var delegate: KeyboardViewDelegate?
-    var haptics: KeyboardHaptics?
-    var audio: KeyboardAudio?
+    var feedback: KeyboardFeedback?
 
     private var shiftState: ShiftState = .lowercase
     private var keyboardMode: KeyboardMode = .letters
@@ -81,7 +80,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
 
     private var showGlobeKey: Bool = true
     private var currentKeyboardType: UIKeyboardType = .default
-    private var activeLongPressPopup: LongPressPopupView?
+    private var activeLongPressPopup: DiacriticMenuView?
     private var longPressButton: KeyButton?
 
     private var backspaceTimer: Timer?
@@ -284,8 +283,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
               index < predictionLabels.count,
               let text = predictionLabels[index].text,
               !text.isEmpty else { return }
-        audio?.playClickSound()
-        haptics?.playHaptic()
+        feedback?.provideFeedback()
     }
 
     @objc private func predictionTapped(_ gesture: UITapGestureRecognizer) {
@@ -792,7 +790,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
 
             longPressButton = button
             showLongPressPopup(for: button, options: options)
-            haptics?.playHaptic()
+            feedback?.provideHapticOnly()
 
         case .changed:
             guard let popup = activeLongPressPopup else { return }
@@ -815,10 +813,10 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
     }
 
     private func showLongPressPopup(for button: KeyButton, options: [String]) {
-        let popup = LongPressPopupView(options: options)
+        let popup = DiacriticMenuView(options: options)
 
-        let popupWidth = LongPressPopupView.popupWidth(for: options.count)
-        let popupHeight = LongPressPopupView.popupHeight()
+        let popupWidth = DiacriticMenuView.popupWidth(for: options.count)
+        let popupHeight = DiacriticMenuView.popupHeight()
 
         let buttonFrame = button.convert(button.bounds, to: self)
         let verticalOffset: CGFloat = 4
@@ -850,8 +848,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
         )
 
         popup.onSelectionChanged = { [weak self] in
-            self?.audio?.playClickSound()
-            self?.haptics?.playHaptic()
+            self?.feedback?.provideFeedback()
         }
 
         addSubview(popup)
@@ -908,8 +905,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
         }
 
         if deleted {
-            audio?.playClickSound()
-            haptics?.playHaptic()
+            feedback?.provideFeedback()
         } else {
             // Nothing left to delete — stop repeating
             stopBackspaceRepeat()
@@ -923,8 +919,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
     }
 
     @objc private func keyTouchedDown(_ sender: UIButton) {
-        audio?.playClickSound()
-        haptics?.playHaptic()
+        feedback?.provideFeedback()
     }
 
     // MARK: - Actions

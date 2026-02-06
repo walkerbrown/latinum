@@ -13,8 +13,7 @@ class KeyboardViewController: UIInputViewController {
 
     private var keyboardView: KeyboardView!
     private var predictionEngine: PredictionEngine!
-    private let haptics = KeyboardHaptics()
-    private let audio = KeyboardAudio()
+    private let feedback = KeyboardFeedback()
     private var shiftState: ShiftState = .lowercase
     private var currentWord: String = ""
     private var rawPredictions: [String] = []
@@ -36,16 +35,15 @@ class KeyboardViewController: UIInputViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        audio.prepare()
+        feedback.prepare()
         setupPredictionEngine()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        haptics.isEnabled = KeyboardSettings.hapticEnabled
-        audio.isEnabled = KeyboardSettings.soundEnabled
-        keyboardView.haptics = haptics
-        keyboardView.audio = audio
+        feedback.hapticEnabled = KeyboardSettings.hapticEnabled
+        feedback.soundEnabled = KeyboardSettings.soundEnabled
+        keyboardView.feedback = feedback
         updateAutoCapitalization()
         performPredictionUpdate()
     }

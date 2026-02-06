@@ -1,7 +1,7 @@
 import UIKit
 
-/// Popup view for long-press character options (macrons, ligatures)
-class LongPressPopupView: UIView {
+/// Popup menu for selecting diacritical variants (macrons, ligatures).
+class DiacriticMenuView: UIView {
 
     // MARK: - Properties
 
