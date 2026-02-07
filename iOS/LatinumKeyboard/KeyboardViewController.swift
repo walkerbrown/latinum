@@ -19,6 +19,7 @@ class KeyboardViewController: UIInputViewController {
     private var rawPredictions: [String] = []
     private var lastKeyboardType: UIKeyboardType?
     private var hasSelection: Bool = false
+    private var currentPredictionWork: DispatchWorkItem?
 
     /// Timestamp of last self-triggered text modification, used to
     /// skip textDidChange callbacks caused by our own insertions.
@@ -127,8 +128,12 @@ class KeyboardViewController: UIInputViewController {
         let context = textDocumentProxy.documentContextBeforeInput ?? ""
         let word = currentWord
 
-        rawPredictions = predictionEngine.predict(context: context, currentWord: word)
-        applyPredictionCapitalization()
+        currentPredictionWork?.cancel()
+        currentPredictionWork = predictionEngine.predictAsync(context: context, currentWord: word) { [weak self] results in
+            guard let self = self else { return }
+            self.rawPredictions = results
+            self.applyPredictionCapitalization()
+        }
     }
 
     private func applyPredictionCapitalization() {

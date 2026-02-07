@@ -27,8 +27,8 @@ class PredictionEngine {
 
     private var sources: [PredictionSource] = []
 
-    /// Serial queue for loading JSON data files off the main thread.
-    private let inferenceQueue = DispatchQueue(label: "org.walkerbrown.latinum.prediction", qos: .userInitiated)
+    /// Serial queue for loading data and running prediction lookups off the main thread.
+    private let predictionQueue = DispatchQueue(label: "org.walkerbrown.latinum.prediction", qos: .userInitiated)
 
     var onDataLoaded: (() -> Void)?
 
@@ -58,7 +58,7 @@ class PredictionEngine {
 
     /// Load JSON data files asynchronously. Fallback predictions are used until ready.
     func load() {
-        inferenceQueue.async { [weak self] in
+        predictionQueue.async { [weak self] in
             guard let self = self else { return }
             self.frequencySource.loadData()
             self.ngramSource.loadData()
@@ -71,13 +71,28 @@ class PredictionEngine {
 
     // MARK: - Prediction
 
-    /// Generate up to 3 predictions synchronously (lookups are fast enough for main thread).
+    /// Generate up to 3 predictions synchronously.
     func predict(context: String, currentWord: String) -> [String] {
         if currentWord.isEmpty {
             return mergedNextWordPredictions(context: context)
         } else {
             return mergedCompletions(context: context, prefix: currentWord)
         }
+    }
+
+    /// Generate predictions asynchronously on the prediction queue, delivering results on the main thread.
+    /// Returns a `DispatchWorkItem` that the caller can cancel to discard stale results.
+    @discardableResult
+    func predictAsync(context: String, currentWord: String, completion: @escaping ([String]) -> Void) -> DispatchWorkItem {
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            let results = self.predict(context: context, currentWord: currentWord)
+            DispatchQueue.main.async {
+                completion(results)
+            }
+        }
+        predictionQueue.async(execute: work)
+        return work
     }
 
     // MARK: - Source Merging
