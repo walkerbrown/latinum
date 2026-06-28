@@ -451,6 +451,10 @@ extension KeyboardViewController: KeyboardViewDelegate {
     func keyboardViewDidTapGlobe(_ view: KeyboardView) {
         advanceInputMode()
     }
+
+    func keyboardViewDidTapDismiss(_ view: KeyboardView) {
+        dismissKeyboard()
+    }
 }
 
 // MARK: - ShiftState

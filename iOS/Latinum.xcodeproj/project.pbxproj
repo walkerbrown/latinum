@@ -28,6 +28,13 @@
 		A08BBA0A85CF5B10A8D153B1 /* PredictionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7295172B8319F8DEAAF5C52 /* PredictionEngine.swift */; };
 		A2FF5034CA76868C47DD37B2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00C9BF0DEF44E0DACCD03F02 /* Assets.xcassets */; };
 		A39005F953B522949612E911 /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273022C476F5D427715A7893 /* KeyboardView.swift */; };
+		AA10000000000000000000A1 /* KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273022C476F5D427715A7893 /* KeyboardView.swift */; };
+		AA10000000000000000000A2 /* KeyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F4F9E1E952BAE48CC65646 /* KeyButton.swift */; };
+		AA10000000000000000000A3 /* DiacriticMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80036365B48B1762CE2D87C3 /* DiacriticMenuView.swift */; };
+		AA10000000000000000000A4 /* KeyboardFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E2F309C7542DDA92182B48 /* KeyboardFeedback.swift */; };
+		AA10000000000000000000A5 /* KeyboardSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1885ACC5BCA141CE792E5B /* KeyboardSettings.swift */; };
+		AA10000000000000000000A6 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E10B343B9941F46B1EAF886 /* KeyboardViewController.swift */; };
+		AA10000000000000000000A7 /* KeyboardSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10000000000000000000F7 /* KeyboardSnapshotTests.swift */; };
 		AC2A9BEC705D5476A8D11C2E /* NormalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C7703312BE15A7E3AD5289 /* NormalizationTests.swift */; };
 		AEEB250A2C09431CBE5802BC /* FrequencyCompletionSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C8E7EC0F4AF9A38FBE7DFF /* FrequencyCompletionSource.swift */; };
 		C80C264A9A911CB93C81568A /* NGramPredictionSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864D73DE536B8D4B4EC80603 /* NGramPredictionSource.swift */; };
@@ -88,6 +95,7 @@
 		99C8E7EC0F4AF9A38FBE7DFF /* FrequencyCompletionSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrequencyCompletionSource.swift; sourceTree = "<group>"; };
 		9FB77AA9FC0D5402DE8C92DB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9FEB7A42E9FB8BE879F7AAC7 /* ngrams.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ngrams.json; sourceTree = "<group>"; };
+		AA10000000000000000000F7 /* KeyboardSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSnapshotTests.swift; sourceTree = "<group>"; };
 		B8C7703312BE15A7E3AD5289 /* NormalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NormalizationTests.swift; sourceTree = "<group>"; };
 		C3A233109670036F81478F80 /* LatinumAppIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LatinumAppIcon.png; sourceTree = "<group>"; };
 		C604B8E3F5FBA131631352C0 /* word_frequencies.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = word_frequencies.json; sourceTree = "<group>"; };
@@ -125,6 +133,7 @@
 			isa = PBXGroup;
 			children = (
 				D2E7C6FFB3D59BF2829DDCC5 /* Info.plist */,
+				AA10000000000000000000F7 /* KeyboardSnapshotTests.swift */,
 				B8C7703312BE15A7E3AD5289 /* NormalizationTests.swift */,
 				CC72B6218D11B463403569B7 /* PredictionSourceTests.swift */,
 			);
@@ -351,6 +360,13 @@
 				AC2A9BEC705D5476A8D11C2E /* NormalizationTests.swift in Sources */,
 				A08BBA0A85CF5B10A8D153B1 /* PredictionEngine.swift in Sources */,
 				1D74784B59A2958FB5DF6A09 /* PredictionSourceTests.swift in Sources */,
+				AA10000000000000000000A1 /* KeyboardView.swift in Sources */,
+				AA10000000000000000000A2 /* KeyButton.swift in Sources */,
+				AA10000000000000000000A3 /* DiacriticMenuView.swift in Sources */,
+				AA10000000000000000000A4 /* KeyboardFeedback.swift in Sources */,
+				AA10000000000000000000A5 /* KeyboardSettings.swift in Sources */,
+				AA10000000000000000000A6 /* KeyboardViewController.swift in Sources */,
+				AA10000000000000000000A7 /* KeyboardSnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,7 +406,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -407,13 +423,14 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -466,7 +483,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -570,7 +587,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.5;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -597,13 +614,14 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -627,7 +645,7 @@
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};

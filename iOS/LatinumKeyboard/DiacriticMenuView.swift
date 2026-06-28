@@ -22,13 +22,14 @@ class DiacriticMenuView: UIView {
         }
     }
 
-    private static let optionWidth: CGFloat = 44
-    private static let optionHeight: CGFloat = 44
+    private static let defaultOptionSize: CGFloat = 44
+    private let optionSize: CGFloat
 
     // MARK: - Initialization
 
-    init(options: [String]) {
+    init(options: [String], optionSize: CGFloat = DiacriticMenuView.defaultOptionSize) {
         self.options = options
+        self.optionSize = optionSize
         super.init(frame: .zero)
         setupView()
     }
@@ -125,11 +126,11 @@ class DiacriticMenuView: UIView {
 
     // MARK: - Class Methods
 
-    class func popupWidth(for optionCount: Int) -> CGFloat {
-        return CGFloat(optionCount) * optionWidth + 8
+    class func popupWidth(for optionCount: Int, optionSize: CGFloat = defaultOptionSize) -> CGFloat {
+        return CGFloat(optionCount) * optionSize + 8
     }
 
-    class func popupHeight() -> CGFloat {
-        return optionHeight + 8
+    class func popupHeight(optionSize: CGFloat = defaultOptionSize) -> CGFloat {
+        return optionSize + 8
     }
 }
