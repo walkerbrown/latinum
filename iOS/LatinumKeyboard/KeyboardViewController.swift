@@ -401,6 +401,35 @@ class KeyboardViewController: UIInputViewController {
     func advanceInputMode() {
         advanceToNextInputMode()
     }
+
+    /// Move the insertion point by `offset` characters, clamped to the text
+    /// available in the document context. Returns the offset actually applied.
+    @discardableResult
+    func moveCursor(by offset: Int) -> Int {
+        guard offset != 0 else { return 0 }
+
+        let applied: Int
+        if offset < 0 {
+            let before = textDocumentProxy.documentContextBeforeInput?.count ?? 0
+            applied = -min(-offset, before)
+        } else {
+            let after = textDocumentProxy.documentContextAfterInput?.count ?? 0
+            applied = min(offset, after)
+        }
+        guard applied != 0 else { return 0 }
+
+        lastSelfModifiedTime = CFAbsoluteTimeGetCurrent()
+        textDocumentProxy.adjustTextPosition(byCharacterOffset: applied)
+        return applied
+    }
+
+    /// After a cursor drag, the insertion point has moved without any text
+    /// change, so recompute the current word and predictions for the new spot.
+    func finishCursorDrag() {
+        hasSelection = false
+        updateCurrentWord()
+        performPredictionUpdate()
+    }
 }
 
 // MARK: - KeyboardViewDelegate
@@ -454,6 +483,15 @@ extension KeyboardViewController: KeyboardViewDelegate {
 
     func keyboardViewDidTapDismiss(_ view: KeyboardView) {
         dismissKeyboard()
+    }
+
+    @discardableResult
+    func keyboardView(_ view: KeyboardView, didMoveCursorBy offset: Int) -> Int {
+        moveCursor(by: offset)
+    }
+
+    func keyboardViewDidEndCursorDrag(_ view: KeyboardView) {
+        finishCursorDrag()
     }
 }
 

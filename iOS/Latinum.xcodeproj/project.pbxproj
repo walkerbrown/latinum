@@ -35,6 +35,8 @@
 		AA10000000000000000000A5 /* KeyboardSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1885ACC5BCA141CE792E5B /* KeyboardSettings.swift */; };
 		AA10000000000000000000A6 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E10B343B9941F46B1EAF886 /* KeyboardViewController.swift */; };
 		AA10000000000000000000A7 /* KeyboardSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10000000000000000000F7 /* KeyboardSnapshotTests.swift */; };
+		AA10000000000000000000A8 /* CursorDragTrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10000000000000000000F8 /* CursorDragTrackerTests.swift */; };
+		AA10000000000000000000A9 /* KeyboardCursorDragTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10000000000000000000F9 /* KeyboardCursorDragTests.swift */; };
 		AC2A9BEC705D5476A8D11C2E /* NormalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C7703312BE15A7E3AD5289 /* NormalizationTests.swift */; };
 		AEEB250A2C09431CBE5802BC /* FrequencyCompletionSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99C8E7EC0F4AF9A38FBE7DFF /* FrequencyCompletionSource.swift */; };
 		C80C264A9A911CB93C81568A /* NGramPredictionSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864D73DE536B8D4B4EC80603 /* NGramPredictionSource.swift */; };
@@ -96,6 +98,8 @@
 		9FB77AA9FC0D5402DE8C92DB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9FEB7A42E9FB8BE879F7AAC7 /* ngrams.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ngrams.json; sourceTree = "<group>"; };
 		AA10000000000000000000F7 /* KeyboardSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardSnapshotTests.swift; sourceTree = "<group>"; };
+		AA10000000000000000000F8 /* CursorDragTrackerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CursorDragTrackerTests.swift; sourceTree = "<group>"; };
+		AA10000000000000000000F9 /* KeyboardCursorDragTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardCursorDragTests.swift; sourceTree = "<group>"; };
 		B8C7703312BE15A7E3AD5289 /* NormalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NormalizationTests.swift; sourceTree = "<group>"; };
 		C3A233109670036F81478F80 /* LatinumAppIcon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LatinumAppIcon.png; sourceTree = "<group>"; };
 		C604B8E3F5FBA131631352C0 /* word_frequencies.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = word_frequencies.json; sourceTree = "<group>"; };
@@ -134,6 +138,8 @@
 			children = (
 				D2E7C6FFB3D59BF2829DDCC5 /* Info.plist */,
 				AA10000000000000000000F7 /* KeyboardSnapshotTests.swift */,
+				AA10000000000000000000F8 /* CursorDragTrackerTests.swift */,
+				AA10000000000000000000F9 /* KeyboardCursorDragTests.swift */,
 				B8C7703312BE15A7E3AD5289 /* NormalizationTests.swift */,
 				CC72B6218D11B463403569B7 /* PredictionSourceTests.swift */,
 			);
@@ -260,7 +266,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					A45A567A696DF69AC480A895 = {
 						ProvisioningStyle = Automatic;
@@ -367,6 +373,8 @@
 				AA10000000000000000000A5 /* KeyboardSettings.swift in Sources */,
 				AA10000000000000000000A6 /* KeyboardViewController.swift in Sources */,
 				AA10000000000000000000A7 /* KeyboardSnapshotTests.swift in Sources */,
+				AA10000000000000000000A8 /* CursorDragTrackerTests.swift in Sources */,
+				AA10000000000000000000A9 /* KeyboardCursorDragTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -399,6 +407,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app.keyboard;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -423,7 +432,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -614,7 +623,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -638,6 +647,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = org.walkerbrown.latinum.app.keyboard;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;

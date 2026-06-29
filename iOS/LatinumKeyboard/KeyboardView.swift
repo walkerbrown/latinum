@@ -16,6 +16,46 @@ protocol KeyboardViewDelegate: AnyObject {
     func keyboardView(_ view: KeyboardView, didSelectPrediction prediction: String)
     func keyboardViewDidTapGlobe(_ view: KeyboardView)
     func keyboardViewDidTapDismiss(_ view: KeyboardView)
+    /// Move the insertion point by `offset` characters (negative = backward).
+    /// Returns the offset actually applied after clamping to the text bounds,
+    /// so the caller can keep its drag accounting in sync at the text edges.
+    @discardableResult func keyboardView(_ view: KeyboardView, didMoveCursorBy offset: Int) -> Int
+    /// The spacebar cursor-drag gesture ended; recompute word/prediction state.
+    func keyboardViewDidEndCursorDrag(_ view: KeyboardView)
+}
+
+/// Pure accounting for spacebar cursor dragging: maps a horizontal finger
+/// position to a character delta to apply, and recalibrates at text boundaries
+/// so reversing direction responds immediately (no dead zone).
+struct CursorDragTracker {
+    let pointsPerStep: CGFloat
+    private var startX: CGFloat = 0
+    private var appliedOffset: Int = 0
+
+    init(pointsPerStep: CGFloat) {
+        self.pointsPerStep = pointsPerStep
+    }
+
+    mutating func begin(atX x: CGFloat) {
+        startX = x
+        appliedOffset = 0
+    }
+
+    /// The character delta that should be applied for the current finger X.
+    func requestedDelta(atX x: CGFloat) -> Int {
+        let target = Int(((x - startX) / pointsPerStep).rounded())
+        return target - appliedOffset
+    }
+
+    /// Record how many characters were actually applied for `requestedDelta`.
+    /// When clamped (applied != requested), re-anchor so the boundary maps to
+    /// the current finger position.
+    mutating func commit(applied: Int, requestedDelta: Int, atX x: CGFloat) {
+        appliedOffset += applied
+        if applied != requestedDelta {
+            startX = x - CGFloat(appliedOffset) * pointsPerStep
+        }
+    }
 }
 
 /// Keyboard input mode
@@ -94,6 +134,11 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
     private var backspaceDeleteCount: Int = 0
     private let charDeleteThreshold: Int = 5
     private let backspaceRepeatInterval: TimeInterval = 0.12
+
+    /// Spacebar cursor-drag state. `pointsPerStep` is the horizontal finger
+    /// travel (points) that advances the cursor by one character.
+    private var cursorTracker = CursorDragTracker(pointsPerStep: 8)
+    private var isCursorDragging = false
 
     private let keyboardStack = UIStackView()
     private var predictionLabels: [UILabel] = []
@@ -737,6 +782,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
     private func createSpaceButton() -> KeyButton {
         let space = KeyButton(key: "space")
         space.addTarget(self, action: #selector(spaceTapped), for: .touchUpInside)
+        setupSpaceCursorDrag(for: space)
         spaceButton = space
 
         let centerLabel = UILabel()
@@ -895,6 +941,7 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
 
         let space = KeyButton(key: "space")
         space.addTarget(self, action: #selector(spaceTapped), for: .touchUpInside)
+        setupSpaceCursorDrag(for: space)
         addFeedback(to: space)
         addLangIndicator(to: space)
         space.widthAnchor.constraint(greaterThanOrEqualToConstant: 44).isActive = true
@@ -1261,6 +1308,53 @@ class KeyboardView: UIInputView, UIGestureRecognizerDelegate {
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleBackspaceLongPress(_:)))
         longPress.minimumPressDuration = 0.3
         button.addGestureRecognizer(longPress)
+    }
+
+    // MARK: - Spacebar Cursor Drag
+
+    /// Press-and-hold the spacebar, then drag to move the insertion point —
+    /// mirrors the system keyboard's trackpad. Horizontal-only: iOS only lets
+    /// extensions move the cursor by character offset, so vertical/selection
+    /// are intentionally not attempted.
+    private func setupSpaceCursorDrag(for button: KeyButton) {
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleSpaceLongPress(_:)))
+        longPress.minimumPressDuration = 0.3
+        // Allow the finger to move during the hold without failing the gesture;
+        // dragging begins once it is recognized.
+        longPress.allowableMovement = .greatestFiniteMagnitude
+        button.addGestureRecognizer(longPress)
+    }
+
+    @objc private func handleSpaceLongPress(_ gesture: UILongPressGestureRecognizer) {
+        handleCursorDrag(state: gesture.state, locationX: gesture.location(in: self).x)
+    }
+
+    /// Per-event cursor-drag logic, separated from the gesture recognizer so it
+    /// can be driven directly by tests with synthetic positions.
+    func handleCursorDrag(state: UIGestureRecognizer.State, locationX x: CGFloat) {
+        switch state {
+        case .began:
+            isCursorDragging = true
+            cursorTracker.begin(atX: x)
+            dismissLongPressPopup()
+            feedback?.provideHapticOnly()
+
+        case .changed:
+            guard isCursorDragging else { return }
+            let delta = cursorTracker.requestedDelta(atX: x)
+            if delta != 0 {
+                let applied = delegate?.keyboardView(self, didMoveCursorBy: delta) ?? 0
+                cursorTracker.commit(applied: applied, requestedDelta: delta, atX: x)
+            }
+
+        case .ended, .cancelled, .failed:
+            guard isCursorDragging else { return }
+            isCursorDragging = false
+            delegate?.keyboardViewDidEndCursorDrag(self)
+
+        default:
+            break
+        }
     }
 
     @objc private func handleBackspaceLongPress(_ gesture: UILongPressGestureRecognizer) {
